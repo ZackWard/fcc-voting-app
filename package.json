@@ -5,7 +5,8 @@
   "main": "server/server.js",
   "scripts": {
     "test": "mocha",
-    "build": "webpack"
+    "build": "webpack & tsc -p tsconfig.server.json",
+    "start": "node server/server.js"
   },
   "repository": {
     "type": "git",
