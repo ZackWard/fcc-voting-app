@@ -4,7 +4,7 @@
   "description": "Voting App for Free Code Camp",
   "main": "server/server.js",
   "scripts": {
-    "test": "mocha",
+    "test": "set VOTE_APP_ENV=test&mocha",
     "build": "webpack & tsc -p tsconfig.server.json",
     "start": "node server/server.js"
   },
@@ -19,8 +19,12 @@
   },
   "homepage": "https://github.com/ZackWard/fcc-voting-app#readme",
   "dependencies": {
+    "bcrypt": "^1.0.2",
+    "body-parser": "^1.16.0",
+    "dotenv": "^4.0.0",
     "express": "^4.14.0",
     "helmet": "^3.4.0",
+    "jsonwebtoken": "^7.2.1",
     "mongodb": "^2.2.21",
     "react": "^15.4.2",
     "react-dom": "^15.4.2",

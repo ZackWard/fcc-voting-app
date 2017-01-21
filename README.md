@@ -2,8 +2,15 @@
 
 Technologies to use:
 
+## Front End
+
 * React
 * Redux
+* Typescript
+* JSON Web Tokens for authentication
+
+## Back End
+
 * Typescript
 
 Should satisfy the following user stories:

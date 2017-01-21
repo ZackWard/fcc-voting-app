@@ -45,17 +45,16 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	var React = __webpack_require__(1);
-	var ReactDOM = __webpack_require__(32);
-	var redux_1 = __webpack_require__(178);
-	var react_redux_1 = __webpack_require__(199);
-	var VotingApp_1 = __webpack_require__(216);
-	var initialState = {};
-	var tempReducer = function (state, action) {
-	    if (state === void 0) { state = initialState; }
+	const React = __webpack_require__(1);
+	const ReactDOM = __webpack_require__(32);
+	const redux_1 = __webpack_require__(178);
+	const react_redux_1 = __webpack_require__(199);
+	const VotingApp_1 = __webpack_require__(216);
+	const initialState = {};
+	const tempReducer = (state = initialState, action) => {
 	    return state;
 	};
-	var store = redux_1.createStore(tempReducer);
+	const store = redux_1.createStore(tempReducer);
 	ReactDOM.render(React.createElement(react_redux_1.Provider, { store: store },
 	    React.createElement(VotingApp_1.VotingApp, null)), document.getElementById('root'));
 
@@ -23727,10 +23726,11 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	var React = __webpack_require__(1);
-	exports.VotingApp = function () {
+	const React = __webpack_require__(1);
+	exports.VotingApp = () => {
 	    return (React.createElement("div", null,
-	        React.createElement("h1", null, "Free Code Camp Voting App")));
+	        React.createElement("h1", null, "Free Code Camp Voting App"),
+	        React.createElement("h2", null, "by Zack Ward")));
 	};
 
 
