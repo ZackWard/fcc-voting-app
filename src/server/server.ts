@@ -5,7 +5,7 @@ import * as bodyParser from 'body-parser';
 import * as jwt from "jsonwebtoken";
 import * as db from "./db";
 
-dotenv.config({path: __dirname + "/../.env"});
+dotenv.config();
 console.log("VOTE_APP_JWT_SECRET: " + process.env.VOTE_APP_JWT_SECRET);
 
 var app = express();

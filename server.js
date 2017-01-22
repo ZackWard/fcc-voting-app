@@ -5,7 +5,7 @@ const helmet = require("helmet");
 const bodyParser = require("body-parser");
 const jwt = require("jsonwebtoken");
 const db = require("./db");
-dotenv.config({ path: __dirname + "/../.env" });
+dotenv.config();
 console.log("VOTE_APP_JWT_SECRET: " + process.env.VOTE_APP_JWT_SECRET);
 var app = express();
 var port = 3005;

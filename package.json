@@ -6,7 +6,7 @@
   "scripts": {
     "test": "set VOTE_APP_ENV=test&mocha",
     "build": "webpack & tsc -p tsconfig.server.json",
-    "start": "node server/server.js"
+    "start": "node server.js"
   },
   "repository": {
     "type": "git",
@@ -29,10 +29,14 @@
     "react": "^15.4.2",
     "react-dom": "^15.4.2",
     "react-redux": "^5.0.2",
-    "redux": "^3.6.0"
+    "react-router": "^3.0.2",
+    "redux": "^3.6.0",
+    "redux-thunk": "^2.2.0"
   },
   "devDependencies": {
     "@types/node": "^7.0.0",
+    "@types/react": "^15.0.1",
+    "@types/react-router": "^2.0.45",
     "awesome-typescript-loader": "^3.0.0-beta.18",
     "chai": "^3.5.0",
     "chai-http": "^3.0.0"

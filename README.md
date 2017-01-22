@@ -5,6 +5,7 @@ Technologies to use:
 ## Front End
 
 * React
+* React Router
 * Redux
 * Typescript
 * JSON Web Tokens for authentication
@@ -12,6 +13,7 @@ Technologies to use:
 ## Back End
 
 * Typescript
+* Express
 
 Should satisfy the following user stories:
 

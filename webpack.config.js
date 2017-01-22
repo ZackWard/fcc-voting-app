@@ -1,14 +1,14 @@
 module.exports = {
-  entry: './client/main.tsx',
+  entry: './src/client/main.tsx',
   output: {
-    filename: './server/public/bundle.js'
+    filename: './public/bundle.js'
   },
   resolve: {
-    extensions: ['', '.js', '.tsx']
+    extensions: ['', '.js', '.ts', '.tsx']
   },
   module: {
     loaders: [
-      { test: /.tsx$/, loader: 'awesome-typescript-loader' }
+      { test: /.tsx?$/, loader: 'awesome-typescript-loader' }
     ]
   }
 };

@@ -4,13 +4,13 @@
         "target": "es6",
         "noImplicitAny": false,
         "sourceMap": false,
-        "outDir": "server",
+        "outDir": "./",
         "typeRoots": [
             "./node_modules/@types"
         ]
     },
     "include": [
-        "server/src/**/*"
+        "src/server/**/*"
     ],
     "exclude": [
         "node_modules"
