@@ -52,13 +52,15 @@
 	var redux_thunk_1 = __webpack_require__(254);
 	var react_redux_1 = __webpack_require__(255);
 	var reducers_1 = __webpack_require__(270);
-	var VotingApp_1 = __webpack_require__(272);
-	var LoginFormContainer_1 = __webpack_require__(273);
+	var VotingApp_1 = __webpack_require__(276);
+	var RegisterUserFormContainer_1 = __webpack_require__(277);
+	var LoginFormContainer_1 = __webpack_require__(279);
 	var store = redux_1.createStore(reducers_1.reducer, redux_1.applyMiddleware(redux_thunk_1.default));
 	ReactDOM.render(React.createElement(react_redux_1.Provider, { store: store },
 	    React.createElement(react_router_1.Router, { history: react_router_1.hashHistory },
 	        React.createElement(react_router_1.Route, { path: "/", component: VotingApp_1.VotingApp }),
-	        React.createElement(react_router_1.Route, { path: "/login", component: LoginFormContainer_1.LoginFormContainer }))), document.getElementById('app'));
+	        React.createElement(react_router_1.Route, { path: "/login", component: LoginFormContainer_1.LoginFormContainer }),
+	        React.createElement(react_router_1.Route, { path: "/register", component: RegisterUserFormContainer_1.RegisterUserFormContainer }))), document.getElementById('app'));
 
 
 /***/ },
@@ -28674,7 +28676,7 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	var actions_1 = __webpack_require__(271);
+	var actions = __webpack_require__(271);
 	var initialState = {
 	    user: null
 	};
@@ -28683,14 +28685,23 @@
 	    // Make a copy of state
 	    var newState = JSON.parse(JSON.stringify(state));
 	    switch (action.type) {
-	        case actions_1.BEGIN_LOGIN:
+	        case actions.BEGIN_LOGIN:
 	            console.log(action.message);
 	            return newState;
-	        case actions_1.LOGIN_SUCCESS:
+	        case actions.LOGIN_SUCCESS:
 	            console.log(action.message);
 	            newState.user = "Some User";
 	            return newState;
-	        case actions_1.LOGIN_FAILURE:
+	        case actions.LOGIN_FAILURE:
+	            console.log(action.message);
+	            return newState;
+	        case actions.BEGIN_REGISTER_USER:
+	            console.log(action.message);
+	            return newState;
+	        case actions.REGISTER_USER_SUCCESS:
+	            console.log(action.message);
+	            return newState;
+	        case actions.REGISTER_USER_FAILURE:
 	            console.log(action.message);
 	            return newState;
 	        default:
@@ -28701,25 +28712,83 @@
 
 /***/ },
 /* 271 */
-/***/ function(module, exports) {
+/***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
+	// Import promise/fetch polyfills
+	__webpack_require__(272);
+	__webpack_require__(275);
 	exports.BEGIN_LOGIN = "BEGIN_LOGIN";
 	exports.LOGIN_SUCCESS = "LOGIN_SUCCESS";
 	exports.LOGIN_FAILURE = "LOGIN_FAILURE";
+	exports.BEGIN_REGISTER_USER = "BEGIN_REGISTER_USER";
+	exports.REGISTER_USER_SUCCESS = "REGISTER_USER_SUCCESS";
+	exports.REGISTER_USER_FAILURE = "REGISTER_USER_FAILURE";
+	function beginRegister(userInfo) {
+	    return function (dispatch) {
+	        // First, update our state to reflect that we're registering a new user
+	        dispatch({
+	            type: exports.BEGIN_REGISTER_USER,
+	            message: "Trying to register user with username " + userInfo.username + " and email " + userInfo.email
+	        });
+	        // Do API call here
+	        var myInit = {
+	            method: "POST",
+	            headers: {
+	                'Content-Type': 'application/json'
+	            },
+	            body: JSON.stringify({
+	                username: userInfo.username,
+	                email: userInfo.email,
+	                password: userInfo.password
+	            })
+	        };
+	        var myRequest = new Request('/api/register', myInit);
+	        fetch(myRequest)
+	            .then(function (response) {
+	            if (response.ok) {
+	                dispatch({
+	                    type: exports.REGISTER_USER_SUCCESS,
+	                    message: "Registered user!"
+	                });
+	            }
+	        })
+	            .catch(function (e) {
+	            dispatch({
+	                type: exports.REGISTER_USER_FAILURE,
+	                message: "Error registering user!"
+	            });
+	        });
+	    };
+	}
+	exports.beginRegister = beginRegister;
+	function registerUserSuccess() {
+	    return {
+	        type: exports.REGISTER_USER_SUCCESS,
+	        message: "User Registered"
+	    };
+	}
+	exports.registerUserSuccess = registerUserSuccess;
+	function registerUserFailure() {
+	    return {
+	        type: exports.REGISTER_USER_FAILURE,
+	        message: "Error registering user"
+	    };
+	}
+	exports.registerUserFailure = registerUserFailure;
 	function beginLogin() {
 	    return function (dispatch) {
 	        dispatch({
 	            type: exports.BEGIN_LOGIN,
 	            message: "Begin Login"
 	        });
-	        // Now, call the login api. We'll test it with a 5 second wait
+	        // Now, call the login api. We'll test it with a 1 second wait
 	        window.setTimeout(function () {
 	            dispatch({
 	                type: exports.LOGIN_SUCCESS,
 	                message: "Logged in!"
 	            });
-	        }, 5000);
+	        }, 1000);
 	    };
 	}
 	exports.beginLogin = beginLogin;
@@ -28743,6 +28812,963 @@
 /* 272 */
 /***/ function(module, exports, __webpack_require__) {
 
+	/* WEBPACK VAR INJECTION */(function(setImmediate) {(function (root) {
+
+	  // Store setTimeout reference so promise-polyfill will be unaffected by
+	  // other code modifying setTimeout (like sinon.useFakeTimers())
+	  var setTimeoutFunc = setTimeout;
+
+	  function noop() {}
+	  
+	  // Polyfill for Function.prototype.bind
+	  function bind(fn, thisArg) {
+	    return function () {
+	      fn.apply(thisArg, arguments);
+	    };
+	  }
+
+	  function Promise(fn) {
+	    if (typeof this !== 'object') throw new TypeError('Promises must be constructed via new');
+	    if (typeof fn !== 'function') throw new TypeError('not a function');
+	    this._state = 0;
+	    this._handled = false;
+	    this._value = undefined;
+	    this._deferreds = [];
+
+	    doResolve(fn, this);
+	  }
+
+	  function handle(self, deferred) {
+	    while (self._state === 3) {
+	      self = self._value;
+	    }
+	    if (self._state === 0) {
+	      self._deferreds.push(deferred);
+	      return;
+	    }
+	    self._handled = true;
+	    Promise._immediateFn(function () {
+	      var cb = self._state === 1 ? deferred.onFulfilled : deferred.onRejected;
+	      if (cb === null) {
+	        (self._state === 1 ? resolve : reject)(deferred.promise, self._value);
+	        return;
+	      }
+	      var ret;
+	      try {
+	        ret = cb(self._value);
+	      } catch (e) {
+	        reject(deferred.promise, e);
+	        return;
+	      }
+	      resolve(deferred.promise, ret);
+	    });
+	  }
+
+	  function resolve(self, newValue) {
+	    try {
+	      // Promise Resolution Procedure: https://github.com/promises-aplus/promises-spec#the-promise-resolution-procedure
+	      if (newValue === self) throw new TypeError('A promise cannot be resolved with itself.');
+	      if (newValue && (typeof newValue === 'object' || typeof newValue === 'function')) {
+	        var then = newValue.then;
+	        if (newValue instanceof Promise) {
+	          self._state = 3;
+	          self._value = newValue;
+	          finale(self);
+	          return;
+	        } else if (typeof then === 'function') {
+	          doResolve(bind(then, newValue), self);
+	          return;
+	        }
+	      }
+	      self._state = 1;
+	      self._value = newValue;
+	      finale(self);
+	    } catch (e) {
+	      reject(self, e);
+	    }
+	  }
+
+	  function reject(self, newValue) {
+	    self._state = 2;
+	    self._value = newValue;
+	    finale(self);
+	  }
+
+	  function finale(self) {
+	    if (self._state === 2 && self._deferreds.length === 0) {
+	      Promise._immediateFn(function() {
+	        if (!self._handled) {
+	          Promise._unhandledRejectionFn(self._value);
+	        }
+	      });
+	    }
+
+	    for (var i = 0, len = self._deferreds.length; i < len; i++) {
+	      handle(self, self._deferreds[i]);
+	    }
+	    self._deferreds = null;
+	  }
+
+	  function Handler(onFulfilled, onRejected, promise) {
+	    this.onFulfilled = typeof onFulfilled === 'function' ? onFulfilled : null;
+	    this.onRejected = typeof onRejected === 'function' ? onRejected : null;
+	    this.promise = promise;
+	  }
+
+	  /**
+	   * Take a potentially misbehaving resolver function and make sure
+	   * onFulfilled and onRejected are only called once.
+	   *
+	   * Makes no guarantees about asynchrony.
+	   */
+	  function doResolve(fn, self) {
+	    var done = false;
+	    try {
+	      fn(function (value) {
+	        if (done) return;
+	        done = true;
+	        resolve(self, value);
+	      }, function (reason) {
+	        if (done) return;
+	        done = true;
+	        reject(self, reason);
+	      });
+	    } catch (ex) {
+	      if (done) return;
+	      done = true;
+	      reject(self, ex);
+	    }
+	  }
+
+	  Promise.prototype['catch'] = function (onRejected) {
+	    return this.then(null, onRejected);
+	  };
+
+	  Promise.prototype.then = function (onFulfilled, onRejected) {
+	    var prom = new (this.constructor)(noop);
+
+	    handle(this, new Handler(onFulfilled, onRejected, prom));
+	    return prom;
+	  };
+
+	  Promise.all = function (arr) {
+	    var args = Array.prototype.slice.call(arr);
+
+	    return new Promise(function (resolve, reject) {
+	      if (args.length === 0) return resolve([]);
+	      var remaining = args.length;
+
+	      function res(i, val) {
+	        try {
+	          if (val && (typeof val === 'object' || typeof val === 'function')) {
+	            var then = val.then;
+	            if (typeof then === 'function') {
+	              then.call(val, function (val) {
+	                res(i, val);
+	              }, reject);
+	              return;
+	            }
+	          }
+	          args[i] = val;
+	          if (--remaining === 0) {
+	            resolve(args);
+	          }
+	        } catch (ex) {
+	          reject(ex);
+	        }
+	      }
+
+	      for (var i = 0; i < args.length; i++) {
+	        res(i, args[i]);
+	      }
+	    });
+	  };
+
+	  Promise.resolve = function (value) {
+	    if (value && typeof value === 'object' && value.constructor === Promise) {
+	      return value;
+	    }
+
+	    return new Promise(function (resolve) {
+	      resolve(value);
+	    });
+	  };
+
+	  Promise.reject = function (value) {
+	    return new Promise(function (resolve, reject) {
+	      reject(value);
+	    });
+	  };
+
+	  Promise.race = function (values) {
+	    return new Promise(function (resolve, reject) {
+	      for (var i = 0, len = values.length; i < len; i++) {
+	        values[i].then(resolve, reject);
+	      }
+	    });
+	  };
+
+	  // Use polyfill for setImmediate for performance gains
+	  Promise._immediateFn = (typeof setImmediate === 'function' && function (fn) { setImmediate(fn); }) ||
+	    function (fn) {
+	      setTimeoutFunc(fn, 0);
+	    };
+
+	  Promise._unhandledRejectionFn = function _unhandledRejectionFn(err) {
+	    if (typeof console !== 'undefined' && console) {
+	      console.warn('Possible Unhandled Promise Rejection:', err); // eslint-disable-line no-console
+	    }
+	  };
+
+	  /**
+	   * Set the immediate function to execute callbacks
+	   * @param fn {function} Function to execute
+	   * @deprecated
+	   */
+	  Promise._setImmediateFn = function _setImmediateFn(fn) {
+	    Promise._immediateFn = fn;
+	  };
+
+	  /**
+	   * Change the function to execute on unhandled rejection
+	   * @param {function} fn Function to execute on unhandled rejection
+	   * @deprecated
+	   */
+	  Promise._setUnhandledRejectionFn = function _setUnhandledRejectionFn(fn) {
+	    Promise._unhandledRejectionFn = fn;
+	  };
+	  
+	  if (typeof module !== 'undefined' && module.exports) {
+	    module.exports = Promise;
+	  } else if (!root.Promise) {
+	    root.Promise = Promise;
+	  }
+
+	})(this);
+
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(273).setImmediate))
+
+/***/ },
+/* 273 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(setImmediate, clearImmediate) {var apply = Function.prototype.apply;
+
+	// DOM APIs, for completeness
+
+	exports.setTimeout = function() {
+	  return new Timeout(apply.call(setTimeout, window, arguments), clearTimeout);
+	};
+	exports.setInterval = function() {
+	  return new Timeout(apply.call(setInterval, window, arguments), clearInterval);
+	};
+	exports.clearTimeout =
+	exports.clearInterval = function(timeout) {
+	  if (timeout) {
+	    timeout.close();
+	  }
+	};
+
+	function Timeout(id, clearFn) {
+	  this._id = id;
+	  this._clearFn = clearFn;
+	}
+	Timeout.prototype.unref = Timeout.prototype.ref = function() {};
+	Timeout.prototype.close = function() {
+	  this._clearFn.call(window, this._id);
+	};
+
+	// Does not start the time, just sets up the members needed.
+	exports.enroll = function(item, msecs) {
+	  clearTimeout(item._idleTimeoutId);
+	  item._idleTimeout = msecs;
+	};
+
+	exports.unenroll = function(item) {
+	  clearTimeout(item._idleTimeoutId);
+	  item._idleTimeout = -1;
+	};
+
+	exports._unrefActive = exports.active = function(item) {
+	  clearTimeout(item._idleTimeoutId);
+
+	  var msecs = item._idleTimeout;
+	  if (msecs >= 0) {
+	    item._idleTimeoutId = setTimeout(function onTimeout() {
+	      if (item._onTimeout)
+	        item._onTimeout();
+	    }, msecs);
+	  }
+	};
+
+	// setimmediate attaches itself to the global object
+	__webpack_require__(274);
+	exports.setImmediate = setImmediate;
+	exports.clearImmediate = clearImmediate;
+
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(273).setImmediate, __webpack_require__(273).clearImmediate))
+
+/***/ },
+/* 274 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(global, process) {(function (global, undefined) {
+	    "use strict";
+
+	    if (global.setImmediate) {
+	        return;
+	    }
+
+	    var nextHandle = 1; // Spec says greater than zero
+	    var tasksByHandle = {};
+	    var currentlyRunningATask = false;
+	    var doc = global.document;
+	    var registerImmediate;
+
+	    function setImmediate(callback) {
+	      // Callback can either be a function or a string
+	      if (typeof callback !== "function") {
+	        callback = new Function("" + callback);
+	      }
+	      // Copy function arguments
+	      var args = new Array(arguments.length - 1);
+	      for (var i = 0; i < args.length; i++) {
+	          args[i] = arguments[i + 1];
+	      }
+	      // Store and register the task
+	      var task = { callback: callback, args: args };
+	      tasksByHandle[nextHandle] = task;
+	      registerImmediate(nextHandle);
+	      return nextHandle++;
+	    }
+
+	    function clearImmediate(handle) {
+	        delete tasksByHandle[handle];
+	    }
+
+	    function run(task) {
+	        var callback = task.callback;
+	        var args = task.args;
+	        switch (args.length) {
+	        case 0:
+	            callback();
+	            break;
+	        case 1:
+	            callback(args[0]);
+	            break;
+	        case 2:
+	            callback(args[0], args[1]);
+	            break;
+	        case 3:
+	            callback(args[0], args[1], args[2]);
+	            break;
+	        default:
+	            callback.apply(undefined, args);
+	            break;
+	        }
+	    }
+
+	    function runIfPresent(handle) {
+	        // From the spec: "Wait until any invocations of this algorithm started before this one have completed."
+	        // So if we're currently running a task, we'll need to delay this invocation.
+	        if (currentlyRunningATask) {
+	            // Delay by doing a setTimeout. setImmediate was tried instead, but in Firefox 7 it generated a
+	            // "too much recursion" error.
+	            setTimeout(runIfPresent, 0, handle);
+	        } else {
+	            var task = tasksByHandle[handle];
+	            if (task) {
+	                currentlyRunningATask = true;
+	                try {
+	                    run(task);
+	                } finally {
+	                    clearImmediate(handle);
+	                    currentlyRunningATask = false;
+	                }
+	            }
+	        }
+	    }
+
+	    function installNextTickImplementation() {
+	        registerImmediate = function(handle) {
+	            process.nextTick(function () { runIfPresent(handle); });
+	        };
+	    }
+
+	    function canUsePostMessage() {
+	        // The test against `importScripts` prevents this implementation from being installed inside a web worker,
+	        // where `global.postMessage` means something completely different and can't be used for this purpose.
+	        if (global.postMessage && !global.importScripts) {
+	            var postMessageIsAsynchronous = true;
+	            var oldOnMessage = global.onmessage;
+	            global.onmessage = function() {
+	                postMessageIsAsynchronous = false;
+	            };
+	            global.postMessage("", "*");
+	            global.onmessage = oldOnMessage;
+	            return postMessageIsAsynchronous;
+	        }
+	    }
+
+	    function installPostMessageImplementation() {
+	        // Installs an event handler on `global` for the `message` event: see
+	        // * https://developer.mozilla.org/en/DOM/window.postMessage
+	        // * http://www.whatwg.org/specs/web-apps/current-work/multipage/comms.html#crossDocumentMessages
+
+	        var messagePrefix = "setImmediate$" + Math.random() + "$";
+	        var onGlobalMessage = function(event) {
+	            if (event.source === global &&
+	                typeof event.data === "string" &&
+	                event.data.indexOf(messagePrefix) === 0) {
+	                runIfPresent(+event.data.slice(messagePrefix.length));
+	            }
+	        };
+
+	        if (global.addEventListener) {
+	            global.addEventListener("message", onGlobalMessage, false);
+	        } else {
+	            global.attachEvent("onmessage", onGlobalMessage);
+	        }
+
+	        registerImmediate = function(handle) {
+	            global.postMessage(messagePrefix + handle, "*");
+	        };
+	    }
+
+	    function installMessageChannelImplementation() {
+	        var channel = new MessageChannel();
+	        channel.port1.onmessage = function(event) {
+	            var handle = event.data;
+	            runIfPresent(handle);
+	        };
+
+	        registerImmediate = function(handle) {
+	            channel.port2.postMessage(handle);
+	        };
+	    }
+
+	    function installReadyStateChangeImplementation() {
+	        var html = doc.documentElement;
+	        registerImmediate = function(handle) {
+	            // Create a <script> element; its readystatechange event will be fired asynchronously once it is inserted
+	            // into the document. Do so, thus queuing up the task. Remember to clean up once it's been called.
+	            var script = doc.createElement("script");
+	            script.onreadystatechange = function () {
+	                runIfPresent(handle);
+	                script.onreadystatechange = null;
+	                html.removeChild(script);
+	                script = null;
+	            };
+	            html.appendChild(script);
+	        };
+	    }
+
+	    function installSetTimeoutImplementation() {
+	        registerImmediate = function(handle) {
+	            setTimeout(runIfPresent, 0, handle);
+	        };
+	    }
+
+	    // If supported, we should attach to the prototype of global, since that is where setTimeout et al. live.
+	    var attachTo = Object.getPrototypeOf && Object.getPrototypeOf(global);
+	    attachTo = attachTo && attachTo.setTimeout ? attachTo : global;
+
+	    // Don't get fooled by e.g. browserify environments.
+	    if ({}.toString.call(global.process) === "[object process]") {
+	        // For Node.js before 0.9
+	        installNextTickImplementation();
+
+	    } else if (canUsePostMessage()) {
+	        // For non-IE10 modern browsers
+	        installPostMessageImplementation();
+
+	    } else if (global.MessageChannel) {
+	        // For web workers, where supported
+	        installMessageChannelImplementation();
+
+	    } else if (doc && "onreadystatechange" in doc.createElement("script")) {
+	        // For IE 6–8
+	        installReadyStateChangeImplementation();
+
+	    } else {
+	        // For older browsers
+	        installSetTimeoutImplementation();
+	    }
+
+	    attachTo.setImmediate = setImmediate;
+	    attachTo.clearImmediate = clearImmediate;
+	}(typeof self === "undefined" ? typeof global === "undefined" ? this : global : self));
+
+	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }()), __webpack_require__(3)))
+
+/***/ },
+/* 275 */
+/***/ function(module, exports) {
+
+	(function(self) {
+	  'use strict';
+
+	  if (self.fetch) {
+	    return
+	  }
+
+	  var support = {
+	    searchParams: 'URLSearchParams' in self,
+	    iterable: 'Symbol' in self && 'iterator' in Symbol,
+	    blob: 'FileReader' in self && 'Blob' in self && (function() {
+	      try {
+	        new Blob()
+	        return true
+	      } catch(e) {
+	        return false
+	      }
+	    })(),
+	    formData: 'FormData' in self,
+	    arrayBuffer: 'ArrayBuffer' in self
+	  }
+
+	  if (support.arrayBuffer) {
+	    var viewClasses = [
+	      '[object Int8Array]',
+	      '[object Uint8Array]',
+	      '[object Uint8ClampedArray]',
+	      '[object Int16Array]',
+	      '[object Uint16Array]',
+	      '[object Int32Array]',
+	      '[object Uint32Array]',
+	      '[object Float32Array]',
+	      '[object Float64Array]'
+	    ]
+
+	    var isDataView = function(obj) {
+	      return obj && DataView.prototype.isPrototypeOf(obj)
+	    }
+
+	    var isArrayBufferView = ArrayBuffer.isView || function(obj) {
+	      return obj && viewClasses.indexOf(Object.prototype.toString.call(obj)) > -1
+	    }
+	  }
+
+	  function normalizeName(name) {
+	    if (typeof name !== 'string') {
+	      name = String(name)
+	    }
+	    if (/[^a-z0-9\-#$%&'*+.\^_`|~]/i.test(name)) {
+	      throw new TypeError('Invalid character in header field name')
+	    }
+	    return name.toLowerCase()
+	  }
+
+	  function normalizeValue(value) {
+	    if (typeof value !== 'string') {
+	      value = String(value)
+	    }
+	    return value
+	  }
+
+	  // Build a destructive iterator for the value list
+	  function iteratorFor(items) {
+	    var iterator = {
+	      next: function() {
+	        var value = items.shift()
+	        return {done: value === undefined, value: value}
+	      }
+	    }
+
+	    if (support.iterable) {
+	      iterator[Symbol.iterator] = function() {
+	        return iterator
+	      }
+	    }
+
+	    return iterator
+	  }
+
+	  function Headers(headers) {
+	    this.map = {}
+
+	    if (headers instanceof Headers) {
+	      headers.forEach(function(value, name) {
+	        this.append(name, value)
+	      }, this)
+
+	    } else if (headers) {
+	      Object.getOwnPropertyNames(headers).forEach(function(name) {
+	        this.append(name, headers[name])
+	      }, this)
+	    }
+	  }
+
+	  Headers.prototype.append = function(name, value) {
+	    name = normalizeName(name)
+	    value = normalizeValue(value)
+	    var oldValue = this.map[name]
+	    this.map[name] = oldValue ? oldValue+','+value : value
+	  }
+
+	  Headers.prototype['delete'] = function(name) {
+	    delete this.map[normalizeName(name)]
+	  }
+
+	  Headers.prototype.get = function(name) {
+	    name = normalizeName(name)
+	    return this.has(name) ? this.map[name] : null
+	  }
+
+	  Headers.prototype.has = function(name) {
+	    return this.map.hasOwnProperty(normalizeName(name))
+	  }
+
+	  Headers.prototype.set = function(name, value) {
+	    this.map[normalizeName(name)] = normalizeValue(value)
+	  }
+
+	  Headers.prototype.forEach = function(callback, thisArg) {
+	    for (var name in this.map) {
+	      if (this.map.hasOwnProperty(name)) {
+	        callback.call(thisArg, this.map[name], name, this)
+	      }
+	    }
+	  }
+
+	  Headers.prototype.keys = function() {
+	    var items = []
+	    this.forEach(function(value, name) { items.push(name) })
+	    return iteratorFor(items)
+	  }
+
+	  Headers.prototype.values = function() {
+	    var items = []
+	    this.forEach(function(value) { items.push(value) })
+	    return iteratorFor(items)
+	  }
+
+	  Headers.prototype.entries = function() {
+	    var items = []
+	    this.forEach(function(value, name) { items.push([name, value]) })
+	    return iteratorFor(items)
+	  }
+
+	  if (support.iterable) {
+	    Headers.prototype[Symbol.iterator] = Headers.prototype.entries
+	  }
+
+	  function consumed(body) {
+	    if (body.bodyUsed) {
+	      return Promise.reject(new TypeError('Already read'))
+	    }
+	    body.bodyUsed = true
+	  }
+
+	  function fileReaderReady(reader) {
+	    return new Promise(function(resolve, reject) {
+	      reader.onload = function() {
+	        resolve(reader.result)
+	      }
+	      reader.onerror = function() {
+	        reject(reader.error)
+	      }
+	    })
+	  }
+
+	  function readBlobAsArrayBuffer(blob) {
+	    var reader = new FileReader()
+	    var promise = fileReaderReady(reader)
+	    reader.readAsArrayBuffer(blob)
+	    return promise
+	  }
+
+	  function readBlobAsText(blob) {
+	    var reader = new FileReader()
+	    var promise = fileReaderReady(reader)
+	    reader.readAsText(blob)
+	    return promise
+	  }
+
+	  function readArrayBufferAsText(buf) {
+	    var view = new Uint8Array(buf)
+	    var chars = new Array(view.length)
+
+	    for (var i = 0; i < view.length; i++) {
+	      chars[i] = String.fromCharCode(view[i])
+	    }
+	    return chars.join('')
+	  }
+
+	  function bufferClone(buf) {
+	    if (buf.slice) {
+	      return buf.slice(0)
+	    } else {
+	      var view = new Uint8Array(buf.byteLength)
+	      view.set(new Uint8Array(buf))
+	      return view.buffer
+	    }
+	  }
+
+	  function Body() {
+	    this.bodyUsed = false
+
+	    this._initBody = function(body) {
+	      this._bodyInit = body
+	      if (!body) {
+	        this._bodyText = ''
+	      } else if (typeof body === 'string') {
+	        this._bodyText = body
+	      } else if (support.blob && Blob.prototype.isPrototypeOf(body)) {
+	        this._bodyBlob = body
+	      } else if (support.formData && FormData.prototype.isPrototypeOf(body)) {
+	        this._bodyFormData = body
+	      } else if (support.searchParams && URLSearchParams.prototype.isPrototypeOf(body)) {
+	        this._bodyText = body.toString()
+	      } else if (support.arrayBuffer && support.blob && isDataView(body)) {
+	        this._bodyArrayBuffer = bufferClone(body.buffer)
+	        // IE 10-11 can't handle a DataView body.
+	        this._bodyInit = new Blob([this._bodyArrayBuffer])
+	      } else if (support.arrayBuffer && (ArrayBuffer.prototype.isPrototypeOf(body) || isArrayBufferView(body))) {
+	        this._bodyArrayBuffer = bufferClone(body)
+	      } else {
+	        throw new Error('unsupported BodyInit type')
+	      }
+
+	      if (!this.headers.get('content-type')) {
+	        if (typeof body === 'string') {
+	          this.headers.set('content-type', 'text/plain;charset=UTF-8')
+	        } else if (this._bodyBlob && this._bodyBlob.type) {
+	          this.headers.set('content-type', this._bodyBlob.type)
+	        } else if (support.searchParams && URLSearchParams.prototype.isPrototypeOf(body)) {
+	          this.headers.set('content-type', 'application/x-www-form-urlencoded;charset=UTF-8')
+	        }
+	      }
+	    }
+
+	    if (support.blob) {
+	      this.blob = function() {
+	        var rejected = consumed(this)
+	        if (rejected) {
+	          return rejected
+	        }
+
+	        if (this._bodyBlob) {
+	          return Promise.resolve(this._bodyBlob)
+	        } else if (this._bodyArrayBuffer) {
+	          return Promise.resolve(new Blob([this._bodyArrayBuffer]))
+	        } else if (this._bodyFormData) {
+	          throw new Error('could not read FormData body as blob')
+	        } else {
+	          return Promise.resolve(new Blob([this._bodyText]))
+	        }
+	      }
+
+	      this.arrayBuffer = function() {
+	        if (this._bodyArrayBuffer) {
+	          return consumed(this) || Promise.resolve(this._bodyArrayBuffer)
+	        } else {
+	          return this.blob().then(readBlobAsArrayBuffer)
+	        }
+	      }
+	    }
+
+	    this.text = function() {
+	      var rejected = consumed(this)
+	      if (rejected) {
+	        return rejected
+	      }
+
+	      if (this._bodyBlob) {
+	        return readBlobAsText(this._bodyBlob)
+	      } else if (this._bodyArrayBuffer) {
+	        return Promise.resolve(readArrayBufferAsText(this._bodyArrayBuffer))
+	      } else if (this._bodyFormData) {
+	        throw new Error('could not read FormData body as text')
+	      } else {
+	        return Promise.resolve(this._bodyText)
+	      }
+	    }
+
+	    if (support.formData) {
+	      this.formData = function() {
+	        return this.text().then(decode)
+	      }
+	    }
+
+	    this.json = function() {
+	      return this.text().then(JSON.parse)
+	    }
+
+	    return this
+	  }
+
+	  // HTTP methods whose capitalization should be normalized
+	  var methods = ['DELETE', 'GET', 'HEAD', 'OPTIONS', 'POST', 'PUT']
+
+	  function normalizeMethod(method) {
+	    var upcased = method.toUpperCase()
+	    return (methods.indexOf(upcased) > -1) ? upcased : method
+	  }
+
+	  function Request(input, options) {
+	    options = options || {}
+	    var body = options.body
+
+	    if (input instanceof Request) {
+	      if (input.bodyUsed) {
+	        throw new TypeError('Already read')
+	      }
+	      this.url = input.url
+	      this.credentials = input.credentials
+	      if (!options.headers) {
+	        this.headers = new Headers(input.headers)
+	      }
+	      this.method = input.method
+	      this.mode = input.mode
+	      if (!body && input._bodyInit != null) {
+	        body = input._bodyInit
+	        input.bodyUsed = true
+	      }
+	    } else {
+	      this.url = String(input)
+	    }
+
+	    this.credentials = options.credentials || this.credentials || 'omit'
+	    if (options.headers || !this.headers) {
+	      this.headers = new Headers(options.headers)
+	    }
+	    this.method = normalizeMethod(options.method || this.method || 'GET')
+	    this.mode = options.mode || this.mode || null
+	    this.referrer = null
+
+	    if ((this.method === 'GET' || this.method === 'HEAD') && body) {
+	      throw new TypeError('Body not allowed for GET or HEAD requests')
+	    }
+	    this._initBody(body)
+	  }
+
+	  Request.prototype.clone = function() {
+	    return new Request(this, { body: this._bodyInit })
+	  }
+
+	  function decode(body) {
+	    var form = new FormData()
+	    body.trim().split('&').forEach(function(bytes) {
+	      if (bytes) {
+	        var split = bytes.split('=')
+	        var name = split.shift().replace(/\+/g, ' ')
+	        var value = split.join('=').replace(/\+/g, ' ')
+	        form.append(decodeURIComponent(name), decodeURIComponent(value))
+	      }
+	    })
+	    return form
+	  }
+
+	  function parseHeaders(rawHeaders) {
+	    var headers = new Headers()
+	    rawHeaders.split(/\r?\n/).forEach(function(line) {
+	      var parts = line.split(':')
+	      var key = parts.shift().trim()
+	      if (key) {
+	        var value = parts.join(':').trim()
+	        headers.append(key, value)
+	      }
+	    })
+	    return headers
+	  }
+
+	  Body.call(Request.prototype)
+
+	  function Response(bodyInit, options) {
+	    if (!options) {
+	      options = {}
+	    }
+
+	    this.type = 'default'
+	    this.status = 'status' in options ? options.status : 200
+	    this.ok = this.status >= 200 && this.status < 300
+	    this.statusText = 'statusText' in options ? options.statusText : 'OK'
+	    this.headers = new Headers(options.headers)
+	    this.url = options.url || ''
+	    this._initBody(bodyInit)
+	  }
+
+	  Body.call(Response.prototype)
+
+	  Response.prototype.clone = function() {
+	    return new Response(this._bodyInit, {
+	      status: this.status,
+	      statusText: this.statusText,
+	      headers: new Headers(this.headers),
+	      url: this.url
+	    })
+	  }
+
+	  Response.error = function() {
+	    var response = new Response(null, {status: 0, statusText: ''})
+	    response.type = 'error'
+	    return response
+	  }
+
+	  var redirectStatuses = [301, 302, 303, 307, 308]
+
+	  Response.redirect = function(url, status) {
+	    if (redirectStatuses.indexOf(status) === -1) {
+	      throw new RangeError('Invalid status code')
+	    }
+
+	    return new Response(null, {status: status, headers: {location: url}})
+	  }
+
+	  self.Headers = Headers
+	  self.Request = Request
+	  self.Response = Response
+
+	  self.fetch = function(input, init) {
+	    return new Promise(function(resolve, reject) {
+	      var request = new Request(input, init)
+	      var xhr = new XMLHttpRequest()
+
+	      xhr.onload = function() {
+	        var options = {
+	          status: xhr.status,
+	          statusText: xhr.statusText,
+	          headers: parseHeaders(xhr.getAllResponseHeaders() || '')
+	        }
+	        options.url = 'responseURL' in xhr ? xhr.responseURL : options.headers.get('X-Request-URL')
+	        var body = 'response' in xhr ? xhr.response : xhr.responseText
+	        resolve(new Response(body, options))
+	      }
+
+	      xhr.onerror = function() {
+	        reject(new TypeError('Network request failed'))
+	      }
+
+	      xhr.ontimeout = function() {
+	        reject(new TypeError('Network request failed'))
+	      }
+
+	      xhr.open(request.method, request.url, true)
+
+	      if (request.credentials === 'include') {
+	        xhr.withCredentials = true
+	      }
+
+	      if ('responseType' in xhr && support.blob) {
+	        xhr.responseType = 'blob'
+	      }
+
+	      request.headers.forEach(function(value, name) {
+	        xhr.setRequestHeader(name, value)
+	      })
+
+	      xhr.send(typeof request._bodyInit === 'undefined' ? null : request._bodyInit)
+	    })
+	  }
+	  self.fetch.polyfill = true
+	})(typeof self !== 'undefined' ? self : this);
+
+
+/***/ },
+/* 276 */
+/***/ function(module, exports, __webpack_require__) {
+
 	"use strict";
 	var React = __webpack_require__(1);
 	exports.VotingApp = function () {
@@ -28753,11 +29779,94 @@
 
 
 /***/ },
-/* 273 */
+/* 277 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	var LoginForm_1 = __webpack_require__(274);
+	var react_redux_1 = __webpack_require__(255);
+	var RegisterUserForm_1 = __webpack_require__(278);
+	var actions = __webpack_require__(271);
+	var mapDispatchToProps = function (dispatch) {
+	    return {
+	        onRegister: function (userInfo) { dispatch(actions.beginRegister(userInfo)); }
+	    };
+	};
+	exports.RegisterUserFormContainer = react_redux_1.connect(null, mapDispatchToProps)(RegisterUserForm_1.RegisterUserForm);
+
+
+/***/ },
+/* 278 */
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+	var __extends = (this && this.__extends) || function (d, b) {
+	    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+	    function __() { this.constructor = d; }
+	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+	};
+	var React = __webpack_require__(1);
+	var RegisterUserForm = (function (_super) {
+	    __extends(RegisterUserForm, _super);
+	    function RegisterUserForm(props) {
+	        var _this = _super.call(this, props) || this;
+	        _this.handleChange = _this.handleChange.bind(_this);
+	        _this.handleRegister = _this.handleRegister.bind(_this);
+	        _this.state = {
+	            username: '',
+	            email: '',
+	            password: '',
+	            passwordVerification: ''
+	        };
+	        return _this;
+	    }
+	    RegisterUserForm.prototype.handleChange = function (event) {
+	        this.setState((_a = {},
+	            _a[event.target.name] = event.target.value,
+	            _a));
+	        var _a;
+	    };
+	    RegisterUserForm.prototype.handleRegister = function (event) {
+	        event.preventDefault();
+	        if (this.state.password !== this.state.passwordVerification) {
+	            alert("Passwords do not match!");
+	            return;
+	        }
+	        var userInfo = {
+	            username: this.state.username,
+	            email: this.state.email,
+	            password: this.state.password
+	        };
+	        this.props.onRegister(userInfo);
+	    };
+	    RegisterUserForm.prototype.render = function () {
+	        return (React.createElement("div", { className: "container" },
+	            React.createElement("form", null,
+	                React.createElement("h1", null, "New User"),
+	                React.createElement("div", { className: "form-group" },
+	                    React.createElement("label", { htmlFor: "username" }, "Username"),
+	                    React.createElement("input", { type: "text", className: "form-control", id: "username", name: "username", onChange: this.handleChange, placeholder: "Username", value: this.state.username })),
+	                React.createElement("div", { className: "form-group" },
+	                    React.createElement("label", { htmlFor: "email" }, "Email address"),
+	                    React.createElement("input", { type: "email", className: "form-control", id: "email", name: "email", onChange: this.handleChange, placeholder: "Email", value: this.state.email })),
+	                React.createElement("div", { className: "form-group" },
+	                    React.createElement("label", { htmlFor: "password" }, "Password"),
+	                    React.createElement("input", { type: "password", className: "form-control", id: "password", name: "password", onChange: this.handleChange, placeholder: "Password", value: this.state.password })),
+	                React.createElement("div", { className: "form-group" },
+	                    React.createElement("label", { htmlFor: "verify_password" }, "Verify Password"),
+	                    React.createElement("input", { type: "password", className: "form-control", id: "passwordVerification", name: "passwordVerification", onChange: this.handleChange, placeholder: "Password", value: this.state.passwordVerification })),
+	                React.createElement("button", { type: "submit", className: "btn btn-primary", onClick: this.handleRegister }, "Register"))));
+	    };
+	    return RegisterUserForm;
+	}(React.Component));
+	exports.RegisterUserForm = RegisterUserForm;
+
+
+/***/ },
+/* 279 */
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+	var LoginForm_1 = __webpack_require__(280);
 	var actions_1 = __webpack_require__(271);
 	var react_redux_1 = __webpack_require__(255);
 	var mapDispatchToProps = function (dispatch) {
@@ -28769,7 +29878,7 @@
 
 
 /***/ },
-/* 274 */
+/* 280 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";

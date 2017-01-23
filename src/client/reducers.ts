@@ -1,4 +1,4 @@
-import { LOGIN_SUCCESS, LOGIN_FAILURE, BEGIN_LOGIN, beginLogin, loginSuccess, loginFailure } from './actions';
+import * as actions from './actions';
 
 interface appState {
     user: null | string
@@ -12,14 +12,23 @@ export const reducer = (state = initialState, action) => {
     // Make a copy of state
     let newState = JSON.parse(JSON.stringify(state));
     switch (action.type) {
-        case BEGIN_LOGIN:
+        case actions.BEGIN_LOGIN:
             console.log(action.message);
             return newState;
-        case LOGIN_SUCCESS: 
+        case actions.LOGIN_SUCCESS: 
             console.log(action.message);
             newState.user = "Some User";
             return newState;
-        case LOGIN_FAILURE: 
+        case actions.LOGIN_FAILURE: 
+            console.log(action.message);
+            return newState;
+        case actions.BEGIN_REGISTER_USER:
+            console.log(action.message);
+            return newState;
+        case actions.REGISTER_USER_SUCCESS:
+            console.log(action.message);
+            return newState;
+        case actions.REGISTER_USER_FAILURE:
             console.log(action.message);
             return newState;
         default: 

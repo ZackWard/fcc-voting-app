@@ -38,7 +38,6 @@ export function addUser(username: string, email: string, password: string) {
         // Use bcrypt to hash the password, because storing plain text passwords is a really bad idea.
         bcrypt.hash(password, 10)
             .then((result) => {
-                console.log(result);
                 let userObj = {
                     username: username,
                     email: email,

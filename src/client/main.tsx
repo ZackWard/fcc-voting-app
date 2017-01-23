@@ -8,6 +8,7 @@ import { Provider } from "react-redux";
 import { reducer } from "./reducers";
 
 import { VotingApp } from "./components/VotingApp";
+import { RegisterUserFormContainer } from "./containers/RegisterUserFormContainer";
 import { LoginFormContainer } from "./containers/LoginFormContainer";
 import { Nav } from "./components/Nav";
 
@@ -18,6 +19,7 @@ ReactDOM.render(
     <Router history={hashHistory}>
       <Route path="/" component={VotingApp}></Route>
       <Route path="/login" component={LoginFormContainer}></Route>
+      <Route path="/register" component={RegisterUserFormContainer}></Route>
     </Router>
   </Provider>,
   document.getElementById('app')

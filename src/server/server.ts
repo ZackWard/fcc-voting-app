@@ -12,37 +12,21 @@ var app = express();
 var port = 3005;
 
 app.use(helmet());
-app.use(bodyParser.urlencoded({extended: false}));
-// app.use(bodyParser.json());
+const jsonParser = bodyParser.json();
 app.use('/static', express.static(__dirname + '/public'));
 
-app.get('/', function (req, res) {
-    res.sendFile(__dirname + "/public/index.html");
-});
-
-app.get('/register', function (req, res) {
-    res.sendFile(__dirname + "/public/register.html");
-});
-
-app.post('/register', function (req, res) {
+app.post('/api/register', jsonParser, function (req, res) {
+    console.log(req.body);
     const username = req.body.username;
     const email = req.body.email;
     const password = req.body.password;
-    const verifyPassword = req.body.verify_password;
-    if (password !== verifyPassword) {
-        res.status(400).end("Error, passwords do not match");
-    } else {
-        db.addUser(username, email, password)
-            .then(() => {res.end("User added!")})
-            .catch((e) => {res.status(500).end("Error: " + e)});
-    }
+
+    db.addUser(username, email, password)
+        .then(() => {res.end("User added!")})
+        .catch((e) => {res.status(500).end("Error: " + e)});
 });
 
-app.get('/login', function (req, res) {
-    res.sendFile(__dirname + "/public/login.html");
-});
-
-app.post('/login', function (req, res) {
+app.post('/api/login', function (req, res) {
     const username = req.body.username;
     const password = req.body.password;
     db.verifyPassword(username, password)
@@ -68,6 +52,10 @@ app.post('/login', function (req, res) {
             }
         })
         .catch(e => {res.end("Error: " + e)});
+});
+
+app.get('/', function (req, res) {
+    res.sendFile(__dirname + "/public/index.html");
 });
 
 db.connect()

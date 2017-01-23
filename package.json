@@ -26,17 +26,20 @@
     "helmet": "^3.4.0",
     "jsonwebtoken": "^7.2.1",
     "mongodb": "^2.2.21",
+    "promise-polyfill": "^6.0.2",
     "react": "^15.4.2",
     "react-dom": "^15.4.2",
     "react-redux": "^5.0.2",
     "react-router": "^3.0.2",
     "redux": "^3.6.0",
-    "redux-thunk": "^2.2.0"
+    "redux-thunk": "^2.2.0",
+    "whatwg-fetch": "^2.0.2"
   },
   "devDependencies": {
     "@types/node": "^7.0.0",
     "@types/react": "^15.0.1",
     "@types/react-router": "^2.0.45",
+    "@types/whatwg-fetch": "0.0.33",
     "awesome-typescript-loader": "^3.0.0-beta.18",
     "chai": "^3.5.0",
     "chai-http": "^3.0.0"
