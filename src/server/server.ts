@@ -2,6 +2,7 @@ import * as dotenv from 'dotenv';
 import * as express from 'express';
 import * as helmet from 'helmet';
 import * as bodyParser from 'body-parser';
+import * as mongoSanitize from 'express-mongo-sanitize';
 import * as jwt from "jsonwebtoken";
 import * as db from "./db";
 
@@ -13,25 +14,24 @@ var port = 3005;
 
 app.use(helmet());
 const jsonParser = bodyParser.json();
+// app.use(mongoSanitize());
 app.use('/static', express.static(__dirname + '/public'));
 
-app.post('/api/register', jsonParser, function (req, res) {
-    console.log(req.body);
-    const username = req.body.username;
-    const email = req.body.email;
-    const password = req.body.password;
+app.post('/api/register', jsonParser, mongoSanitize(), function (req, res) {
+    let username = req.body.username;
+    let email = req.body.email;
+    let password = req.body.password;
 
     db.addUser(username, email, password)
-        .then(() => {res.end("User added!")})
-        .catch((e) => {res.status(500).end("Error: " + e)});
+        .then(() => {res.json({message: "User added!"})})
+        .catch((e) => {res.status(500).json(e)});
 });
 
-app.post('/api/login', function (req, res) {
+app.post('/api/login', jsonParser, mongoSanitize(), function (req, res) {
     const username = req.body.username;
     const password = req.body.password;
     db.verifyPassword(username, password)
         .then(success => {
-            console.log("Login attempt for " + username + ": " + success);
             if (success) {
                 // Set JSON Web Token for future API authentication
                 let payload = {
@@ -42,13 +42,13 @@ app.post('/api/login', function (req, res) {
                 };
                 jwt.sign(payload, process.env.VOTE_APP_JWT_SECRET, jwtOptions, function (err, token) {
                     if (err) {
-                        res.end("Error setting JSON Web Token");
+                        res.status(500).json({error: "Error setting JSON Web Token"});
                     } else {
                         res.json({apiToken: token});
                     }
                 });
             } else {
-                res.end("Error! Cannot log in!");
+                res.status(500).json({error: "Invalid credentials"});
             }
         })
         .catch(e => {res.end("Error: " + e)});

@@ -1,7 +1,8 @@
 import * as React from "react";
 
 interface RegisterUserFormProps {
-    onRegister: (userInfo) => null
+    onRegister: (userInfo) => null,
+    error?: string
 }
 
 interface RegisterUserFormState {
@@ -41,6 +42,12 @@ export class RegisterUserForm extends React.Component<RegisterUserFormProps, Reg
             email: this.state.email,
             password: this.state.password
         };
+        this.setState({
+            username: '',
+            email: '',
+            password: '',
+            passwordVerification: ''
+        });
         this.props.onRegister(userInfo);
     }
 
@@ -49,6 +56,11 @@ export class RegisterUserForm extends React.Component<RegisterUserFormProps, Reg
             <div className="container">
                 <form>
                     <h1>New User</h1>
+
+                    {this.props.error && 
+                        <div className="alert alert-danger" role="alert">{this.props.error}</div>      
+                    }
+
                     <div className="form-group">
                         <label htmlFor="username">Username</label>
                         <input type="text" className="form-control" id="username" name="username" onChange={this.handleChange} placeholder="Username" value={this.state.username}/>

@@ -53,14 +53,14 @@
 	var react_redux_1 = __webpack_require__(255);
 	var reducers_1 = __webpack_require__(270);
 	var VotingApp_1 = __webpack_require__(276);
-	var RegisterUserFormContainer_1 = __webpack_require__(277);
-	var LoginFormContainer_1 = __webpack_require__(279);
+	var RegisterUserFormContainer_1 = __webpack_require__(279);
+	var LoginFormContainer_1 = __webpack_require__(281);
 	var store = redux_1.createStore(reducers_1.reducer, redux_1.applyMiddleware(redux_thunk_1.default));
 	ReactDOM.render(React.createElement(react_redux_1.Provider, { store: store },
 	    React.createElement(react_router_1.Router, { history: react_router_1.hashHistory },
-	        React.createElement(react_router_1.Route, { path: "/", component: VotingApp_1.VotingApp }),
-	        React.createElement(react_router_1.Route, { path: "/login", component: LoginFormContainer_1.LoginFormContainer }),
-	        React.createElement(react_router_1.Route, { path: "/register", component: RegisterUserFormContainer_1.RegisterUserFormContainer }))), document.getElementById('app'));
+	        React.createElement(react_router_1.Route, { path: "/", component: VotingApp_1.VotingApp },
+	            React.createElement(react_router_1.Route, { path: "/login", component: LoginFormContainer_1.LoginFormContainer }),
+	            React.createElement(react_router_1.Route, { path: "/register", component: RegisterUserFormContainer_1.RegisterUserFormContainer })))), document.getElementById('app'));
 
 
 /***/ },
@@ -28678,7 +28678,7 @@
 	"use strict";
 	var actions = __webpack_require__(271);
 	var initialState = {
-	    user: null
+	    apiToken: window.localStorage.getItem('fcc-vote-app-api-key')
 	};
 	exports.reducer = function (state, action) {
 	    if (state === void 0) { state = initialState; }
@@ -28690,18 +28690,21 @@
 	            return newState;
 	        case actions.LOGIN_SUCCESS:
 	            console.log(action.message);
-	            newState.user = "Some User";
+	            window.localStorage.setItem('fcc-vote-app-api-key', action.apiToken);
+	            newState.apiToken = action.apiToken;
 	            return newState;
 	        case actions.LOGIN_FAILURE:
 	            console.log(action.message);
 	            return newState;
 	        case actions.BEGIN_REGISTER_USER:
+	            delete newState.registerUserError;
 	            console.log(action.message);
 	            return newState;
 	        case actions.REGISTER_USER_SUCCESS:
 	            console.log(action.message);
 	            return newState;
 	        case actions.REGISTER_USER_FAILURE:
+	            newState.registerUserError = action.message;
 	            console.log(action.message);
 	            return newState;
 	        default:
@@ -28752,6 +28755,14 @@
 	                    message: "Registered user!"
 	                });
 	            }
+	            else {
+	                response.json().then(function (json) {
+	                    dispatch({
+	                        type: exports.REGISTER_USER_FAILURE,
+	                        message: "Error registering user: " + json.error
+	                    });
+	                });
+	            }
 	        })
 	            .catch(function (e) {
 	            dispatch({
@@ -28762,50 +28773,53 @@
 	    };
 	}
 	exports.beginRegister = beginRegister;
-	function registerUserSuccess() {
-	    return {
-	        type: exports.REGISTER_USER_SUCCESS,
-	        message: "User Registered"
-	    };
-	}
-	exports.registerUserSuccess = registerUserSuccess;
-	function registerUserFailure() {
-	    return {
-	        type: exports.REGISTER_USER_FAILURE,
-	        message: "Error registering user"
-	    };
-	}
-	exports.registerUserFailure = registerUserFailure;
-	function beginLogin() {
+	function beginLogin(username, password) {
 	    return function (dispatch) {
 	        dispatch({
 	            type: exports.BEGIN_LOGIN,
 	            message: "Begin Login"
 	        });
-	        // Now, call the login api. We'll test it with a 1 second wait
-	        window.setTimeout(function () {
+	        // Do API call here
+	        var myInit = {
+	            method: "POST",
+	            headers: {
+	                'Content-Type': 'application/json'
+	            },
+	            body: JSON.stringify({
+	                username: username,
+	                password: password
+	            })
+	        };
+	        var myRequest = new Request('/api/login', myInit);
+	        fetch(myRequest)
+	            .then(function (response) {
+	            if (response.ok) {
+	                response.json().then(function (json) {
+	                    dispatch({
+	                        type: exports.LOGIN_SUCCESS,
+	                        message: "Logged in!",
+	                        apiToken: json.apiToken
+	                    });
+	                });
+	            }
+	            else {
+	                response.json().then(function (json) {
+	                    dispatch({
+	                        type: exports.LOGIN_FAILURE,
+	                        message: json.error
+	                    });
+	                });
+	            }
+	        })
+	            .catch(function (e) {
 	            dispatch({
-	                type: exports.LOGIN_SUCCESS,
-	                message: "Logged in!"
+	                type: exports.LOGIN_FAILURE,
+	                message: "Error logging in!"
 	            });
-	        }, 1000);
+	        });
 	    };
 	}
 	exports.beginLogin = beginLogin;
-	function loginSuccess() {
-	    return {
-	        type: exports.LOGIN_SUCCESS,
-	        message: "Logged in!"
-	    };
-	}
-	exports.loginSuccess = loginSuccess;
-	function loginFailure() {
-	    return {
-	        type: exports.LOGIN_FAILURE,
-	        message: "Login Failed!"
-	    };
-	}
-	exports.loginFailure = loginFailure;
 
 
 /***/ },
@@ -29771,10 +29785,13 @@
 
 	"use strict";
 	var React = __webpack_require__(1);
-	exports.VotingApp = function () {
+	var NavContainer_1 = __webpack_require__(277);
+	exports.VotingApp = function (props) {
 	    return (React.createElement("div", null,
+	        React.createElement(NavContainer_1.NavContainer, null),
 	        React.createElement("h1", null, "Free Code Camp Voting App"),
-	        React.createElement("h2", null, "by Zack Ward")));
+	        React.createElement("h2", null, "by Zack Ward"),
+	        props.children));
 	};
 
 
@@ -29784,18 +29801,87 @@
 
 	"use strict";
 	var react_redux_1 = __webpack_require__(255);
-	var RegisterUserForm_1 = __webpack_require__(278);
+	var Nav_1 = __webpack_require__(278);
+	var mapStateToProps = function (state) {
+	    return {
+	        token: state.apiToken
+	    };
+	};
+	exports.NavContainer = react_redux_1.connect(mapStateToProps)(Nav_1.Nav);
+
+
+/***/ },
+/* 278 */
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+	var React = __webpack_require__(1);
+	var react_router_1 = __webpack_require__(178);
+	exports.Nav = function (props) {
+	    return (React.createElement("nav", { className: "navbar navbar-default" },
+	        React.createElement("div", { className: "container-fluid" },
+	            React.createElement("div", { className: "navbar-header" },
+	                React.createElement("button", { type: "button", className: "navbar-toggle collapsed", "data-toggle": "collapse", "data-target": "#bs-example-navbar-collapse-1", "aria-expanded": "false" },
+	                    React.createElement("span", { className: "sr-only" }, "Toggle navigation"),
+	                    React.createElement("span", { className: "icon-bar" }),
+	                    React.createElement("span", { className: "icon-bar" }),
+	                    React.createElement("span", { className: "icon-bar" })),
+	                React.createElement("a", { className: "navbar-brand", href: "#" }, "Brand")),
+	            React.createElement("div", { className: "collapse navbar-collapse", id: "bs-example-navbar-collapse-1" },
+	                React.createElement("ul", { className: "nav navbar-nav" },
+	                    React.createElement("li", { className: "active" },
+	                        React.createElement("a", { href: "#" },
+	                            "Link ",
+	                            React.createElement("span", { className: "sr-only" }, "(current)"))),
+	                    React.createElement("li", null,
+	                        React.createElement(react_router_1.Link, { to: "/register" }, "Register")),
+	                    React.createElement("li", null,
+	                        React.createElement(react_router_1.Link, { to: "/login" }, "Login")),
+	                    React.createElement("li", { className: "dropdown" },
+	                        React.createElement("a", { href: "#", className: "dropdown-toggle", "data-toggle": "dropdown", role: "button", "aria-haspopup": "true", "aria-expanded": "false" },
+	                            "Dropdown ",
+	                            React.createElement("span", { className: "caret" })),
+	                        React.createElement("ul", { className: "dropdown-menu" },
+	                            React.createElement("li", null,
+	                                React.createElement("a", { href: "#" }, "Action")),
+	                            React.createElement("li", null,
+	                                React.createElement("a", { href: "#" }, "Another action")),
+	                            React.createElement("li", null,
+	                                React.createElement("a", { href: "#" }, "Something else here")),
+	                            React.createElement("li", { role: "separator", className: "divider" }),
+	                            React.createElement("li", null,
+	                                React.createElement("a", { href: "#" }, props.token)),
+	                            React.createElement("li", { role: "separator", className: "divider" }),
+	                            React.createElement("li", null,
+	                                React.createElement("a", { href: "#" }, "One more separated link")))))))));
+	};
+
+
+/***/ },
+/* 279 */
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+	var react_redux_1 = __webpack_require__(255);
+	var RegisterUserForm_1 = __webpack_require__(280);
 	var actions = __webpack_require__(271);
+	var mapStateToProps = function (state) {
+	    var newProps = {};
+	    if (state.registerUserError !== undefined) {
+	        newProps.error = state.registerUserError;
+	    }
+	    return newProps;
+	};
 	var mapDispatchToProps = function (dispatch) {
 	    return {
 	        onRegister: function (userInfo) { dispatch(actions.beginRegister(userInfo)); }
 	    };
 	};
-	exports.RegisterUserFormContainer = react_redux_1.connect(null, mapDispatchToProps)(RegisterUserForm_1.RegisterUserForm);
+	exports.RegisterUserFormContainer = react_redux_1.connect(mapStateToProps, mapDispatchToProps)(RegisterUserForm_1.RegisterUserForm);
 
 
 /***/ },
-/* 278 */
+/* 280 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
@@ -29836,12 +29922,20 @@
 	            email: this.state.email,
 	            password: this.state.password
 	        };
+	        this.setState({
+	            username: '',
+	            email: '',
+	            password: '',
+	            passwordVerification: ''
+	        });
 	        this.props.onRegister(userInfo);
 	    };
 	    RegisterUserForm.prototype.render = function () {
 	        return (React.createElement("div", { className: "container" },
 	            React.createElement("form", null,
 	                React.createElement("h1", null, "New User"),
+	                this.props.error &&
+	                    React.createElement("div", { className: "alert alert-danger", role: "alert" }, this.props.error),
 	                React.createElement("div", { className: "form-group" },
 	                    React.createElement("label", { htmlFor: "username" }, "Username"),
 	                    React.createElement("input", { type: "text", className: "form-control", id: "username", name: "username", onChange: this.handleChange, placeholder: "Username", value: this.state.username })),
@@ -29862,38 +29956,72 @@
 
 
 /***/ },
-/* 279 */
+/* 281 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	var LoginForm_1 = __webpack_require__(280);
+	var LoginForm_1 = __webpack_require__(282);
 	var actions_1 = __webpack_require__(271);
 	var react_redux_1 = __webpack_require__(255);
 	var mapDispatchToProps = function (dispatch) {
 	    return {
-	        onSubmitLogin: function () { dispatch(actions_1.beginLogin()); }
+	        onSubmitLogin: function (username, password) { dispatch(actions_1.beginLogin(username, password)); }
 	    };
 	};
 	exports.LoginFormContainer = react_redux_1.connect(null, mapDispatchToProps)(LoginForm_1.LoginForm);
 
 
 /***/ },
-/* 280 */
+/* 282 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	var React = __webpack_require__(1);
-	exports.LoginForm = function (props) {
-	    return (React.createElement("form", null,
-	        React.createElement("div", { className: "container" },
-	            React.createElement("div", { className: "form-group" },
-	                React.createElement("label", { htmlFor: "username" }, "Username"),
-	                React.createElement("input", { type: "text", className: "form-control", id: "username", name: "username", placeholder: "Username" })),
-	            React.createElement("div", { className: "form-group" },
-	                React.createElement("label", { htmlFor: "password" }, "Password"),
-	                React.createElement("input", { type: "password", className: "form-control", id: "password", name: "password", placeholder: "Password" })),
-	            React.createElement("button", { type: "submit", className: "btn btn-primary", onClick: function (e) { e.preventDefault(); props.onSubmitLogin(); } }, "Log In"))));
+	var __extends = (this && this.__extends) || function (d, b) {
+	    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+	    function __() { this.constructor = d; }
+	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 	};
+	var React = __webpack_require__(1);
+	var LoginForm = (function (_super) {
+	    __extends(LoginForm, _super);
+	    function LoginForm(props) {
+	        var _this = _super.call(this, props) || this;
+	        _this.handleChange = _this.handleChange.bind(_this);
+	        _this.handleSubmit = _this.handleSubmit.bind(_this);
+	        _this.state = {
+	            username: '',
+	            password: ''
+	        };
+	        return _this;
+	    }
+	    LoginForm.prototype.handleChange = function (event) {
+	        this.setState((_a = {},
+	            _a[event.target.name] = event.target.value,
+	            _a));
+	        var _a;
+	    };
+	    LoginForm.prototype.handleSubmit = function (event) {
+	        event.preventDefault();
+	        this.props.onSubmitLogin(this.state.username, this.state.password);
+	        this.setState({
+	            username: '',
+	            password: ''
+	        });
+	    };
+	    LoginForm.prototype.render = function () {
+	        return (React.createElement("form", null,
+	            React.createElement("div", { className: "container" },
+	                React.createElement("div", { className: "form-group" },
+	                    React.createElement("label", { htmlFor: "username" }, "Username"),
+	                    React.createElement("input", { type: "text", className: "form-control", id: "username", name: "username", onChange: this.handleChange, value: this.state.username, placeholder: "Username" })),
+	                React.createElement("div", { className: "form-group" },
+	                    React.createElement("label", { htmlFor: "password" }, "Password"),
+	                    React.createElement("input", { type: "password", className: "form-control", id: "password", name: "password", onChange: this.handleChange, value: this.state.password, placeholder: "Password" })),
+	                React.createElement("button", { type: "submit", className: "btn btn-primary", onClick: this.handleSubmit }, "Log In"))));
+	    };
+	    return LoginForm;
+	}(React.Component));
+	exports.LoginForm = LoginForm;
 
 
 /***/ }

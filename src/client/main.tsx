@@ -10,16 +10,16 @@ import { reducer } from "./reducers";
 import { VotingApp } from "./components/VotingApp";
 import { RegisterUserFormContainer } from "./containers/RegisterUserFormContainer";
 import { LoginFormContainer } from "./containers/LoginFormContainer";
-import { Nav } from "./components/Nav";
 
 const store = createStore(reducer, applyMiddleware(thunkMiddleware));
 
 ReactDOM.render(
   <Provider store={store}>
     <Router history={hashHistory}>
-      <Route path="/" component={VotingApp}></Route>
-      <Route path="/login" component={LoginFormContainer}></Route>
-      <Route path="/register" component={RegisterUserFormContainer}></Route>
+      <Route path="/" component={VotingApp}>
+        <Route path="/login" component={LoginFormContainer}></Route>
+        <Route path="/register" component={RegisterUserFormContainer}></Route>
+      </Route>
     </Router>
   </Provider>,
   document.getElementById('app')

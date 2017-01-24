@@ -4,7 +4,7 @@ import { connect } from "react-redux";
 
 const mapDispatchToProps = (dispatch) => {
     return {
-        onSubmitLogin: () => { dispatch(beginLogin()); }
+        onSubmitLogin: (username: string, password: string) => { dispatch(beginLogin(username, password)); }
     };
 };
 
