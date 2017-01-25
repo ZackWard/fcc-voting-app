@@ -10,6 +10,7 @@ import { reducer } from "./reducers";
 import { VotingApp } from "./components/VotingApp";
 import { RegisterUserFormContainer } from "./containers/RegisterUserFormContainer";
 import { LoginFormContainer } from "./containers/LoginFormContainer";
+import { PollFormContainer } from "./containers/PollFormContainer";
 
 const store = createStore(reducer, applyMiddleware(thunkMiddleware));
 
@@ -19,6 +20,7 @@ ReactDOM.render(
       <Route path="/" component={VotingApp}>
         <Route path="/login" component={LoginFormContainer}></Route>
         <Route path="/register" component={RegisterUserFormContainer}></Route>
+        <Route path="/polls/new" component={PollFormContainer}></Route>
       </Route>
     </Router>
   </Provider>,

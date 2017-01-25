@@ -112,3 +112,37 @@ export function verifyPassword(username: string, password: string) {
             .catch(e => {reject(e)});
     });
 }
+
+/* 
+ * 
+ * Polls
+ * 
+*/
+
+interface Vote {
+    username: String,
+    ipAddress: String
+}
+
+interface PollResponse {
+    response: String,
+    votes: Vote[]
+}
+
+interface Poll {
+    _id?: String,
+    username: String,
+    question: String,
+    responses: PollResponse[]
+}
+
+export function addPoll(poll: Poll) {
+    return new Promise(function (resolve, reject) {
+        if (state.db == null) {
+            return reject("Database not available.");
+        }
+        state.db.collection('polls').insertOne(poll)
+            .then(() => resolve())
+            .catch((e) => reject(e));
+    });
+}

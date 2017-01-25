@@ -24,6 +24,7 @@ export const Nav = (props: NavProps) => {
                         <li className="active"><a href="#">Link <span className="sr-only">(current)</span></a></li>
                         <li><Link to="/register">Register</Link></li>
                         <li><Link to="/login">Login</Link></li>
+                        <li><Link to="/polls/new">New Poll</Link></li>
                         <li className="dropdown">
                             <a href="#" className="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Dropdown <span className="caret"></span></a>
                             <ul className="dropdown-menu">

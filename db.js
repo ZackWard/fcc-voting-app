@@ -107,3 +107,14 @@ function verifyPassword(username, password) {
     });
 }
 exports.verifyPassword = verifyPassword;
+function addPoll(poll) {
+    return new Promise(function (resolve, reject) {
+        if (state.db == null) {
+            return reject("Database not available.");
+        }
+        state.db.collection('polls').insertOne(poll)
+            .then(() => resolve())
+            .catch((e) => reject(e));
+    });
+}
+exports.addPoll = addPoll;

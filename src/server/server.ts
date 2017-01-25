@@ -27,6 +27,13 @@ app.post('/api/register', jsonParser, mongoSanitize(), function (req, res) {
         .catch((e) => {res.status(500).json(e)});
 });
 
+app.post('/api/poll', jsonParser, mongoSanitize(), function (req, res) {
+    console.log(req.body);
+    res.json({
+        message: "Post added! Yippee!"
+    });
+});
+
 app.post('/api/login', jsonParser, mongoSanitize(), function (req, res) {
     const username = req.body.username;
     const password = req.body.password;

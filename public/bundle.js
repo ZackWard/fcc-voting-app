@@ -55,12 +55,14 @@
 	var VotingApp_1 = __webpack_require__(276);
 	var RegisterUserFormContainer_1 = __webpack_require__(279);
 	var LoginFormContainer_1 = __webpack_require__(281);
+	var PollFormContainer_1 = __webpack_require__(283);
 	var store = redux_1.createStore(reducers_1.reducer, redux_1.applyMiddleware(redux_thunk_1.default));
 	ReactDOM.render(React.createElement(react_redux_1.Provider, { store: store },
 	    React.createElement(react_router_1.Router, { history: react_router_1.hashHistory },
 	        React.createElement(react_router_1.Route, { path: "/", component: VotingApp_1.VotingApp },
 	            React.createElement(react_router_1.Route, { path: "/login", component: LoginFormContainer_1.LoginFormContainer }),
-	            React.createElement(react_router_1.Route, { path: "/register", component: RegisterUserFormContainer_1.RegisterUserFormContainer })))), document.getElementById('app'));
+	            React.createElement(react_router_1.Route, { path: "/register", component: RegisterUserFormContainer_1.RegisterUserFormContainer }),
+	            React.createElement(react_router_1.Route, { path: "/polls/new", component: PollFormContainer_1.PollFormContainer })))), document.getElementById('app'));
 
 
 /***/ },
@@ -28707,6 +28709,15 @@
 	            newState.registerUserError = action.message;
 	            console.log(action.message);
 	            return newState;
+	        case actions.SUBMIT_POLL_FORM:
+	            console.log(action.message);
+	            return newState;
+	        case actions.SUBMIT_POLL_SUCCESS:
+	            console.log(action.message);
+	            return newState;
+	        case actions.SUBMIT_POLL_FAILURE:
+	            console.log(action.message);
+	            return newState;
 	        default:
 	            return newState;
 	    }
@@ -28724,9 +28735,67 @@
 	exports.BEGIN_LOGIN = "BEGIN_LOGIN";
 	exports.LOGIN_SUCCESS = "LOGIN_SUCCESS";
 	exports.LOGIN_FAILURE = "LOGIN_FAILURE";
+	exports.LOGIN_TOKEN_EXPIRED = "LOGIN_TOKEN_EXPIRED";
 	exports.BEGIN_REGISTER_USER = "BEGIN_REGISTER_USER";
 	exports.REGISTER_USER_SUCCESS = "REGISTER_USER_SUCCESS";
 	exports.REGISTER_USER_FAILURE = "REGISTER_USER_FAILURE";
+	exports.SUBMIT_POLL_FORM = "SUBMIT_POLL_FORM";
+	exports.SUBMIT_POLL_SUCCESS = "SUBMIT_POLL_SUCCESS";
+	exports.SUBMIT_POLL_FAILURE = "SUBMIT_POLL_FAILURE";
+	function submitPollForm(poll) {
+	    return function (dispatch) {
+	        dispatch({
+	            type: exports.SUBMIT_POLL_FORM,
+	            message: "Poll Form Submitted"
+	        });
+	        // Modify the poll object to make sure that it's the right format for the database
+	        poll.responses = poll.responses.map(function (responseString) {
+	            return {
+	                response: responseString,
+	                votes: []
+	            };
+	        });
+	        // Do API call here
+	        var myInit = {
+	            method: "POST",
+	            headers: {
+	                'Content-Type': 'application/json'
+	            },
+	            body: JSON.stringify({
+	                username: "BLAH",
+	                question: poll.pollQuestion,
+	                responses: poll.responses
+	            })
+	        };
+	        var myRequest = new Request('/api/poll', myInit);
+	        fetch(myRequest)
+	            .then(function (response) {
+	            if (response.ok) {
+	                response.json().then(function (json) {
+	                    dispatch({
+	                        type: exports.SUBMIT_POLL_SUCCESS,
+	                        message: json.message
+	                    });
+	                });
+	            }
+	            else {
+	                response.json().then(function (json) {
+	                    dispatch({
+	                        type: exports.SUBMIT_POLL_FAILURE,
+	                        message: "Error saving form: " + json.error
+	                    });
+	                });
+	            }
+	        })
+	            .catch(function (e) {
+	            dispatch({
+	                type: exports.SUBMIT_POLL_FAILURE,
+	                message: "Error saving form!"
+	            });
+	        });
+	    };
+	}
+	exports.submitPollForm = submitPollForm;
 	function beginRegister(userInfo) {
 	    return function (dispatch) {
 	        // First, update our state to reflect that we're registering a new user
@@ -28820,6 +28889,13 @@
 	    };
 	}
 	exports.beginLogin = beginLogin;
+	function tokenExpired() {
+	    return {
+	        type: exports.LOGIN_TOKEN_EXPIRED,
+	        message: "Login Token Expired"
+	    };
+	}
+	exports.tokenExpired = tokenExpired;
 
 
 /***/ },
@@ -29837,6 +29913,8 @@
 	                        React.createElement(react_router_1.Link, { to: "/register" }, "Register")),
 	                    React.createElement("li", null,
 	                        React.createElement(react_router_1.Link, { to: "/login" }, "Login")),
+	                    React.createElement("li", null,
+	                        React.createElement(react_router_1.Link, { to: "/polls/new" }, "New Poll")),
 	                    React.createElement("li", { className: "dropdown" },
 	                        React.createElement("a", { href: "#", className: "dropdown-toggle", "data-toggle": "dropdown", role: "button", "aria-haspopup": "true", "aria-expanded": "false" },
 	                            "Dropdown ",
@@ -30022,6 +30100,128 @@
 	    return LoginForm;
 	}(React.Component));
 	exports.LoginForm = LoginForm;
+
+
+/***/ },
+/* 283 */
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+	var react_redux_1 = __webpack_require__(255);
+	var PollForm_1 = __webpack_require__(284);
+	var actions = __webpack_require__(271);
+	var mapStateToProps = function (state) {
+	    return {};
+	};
+	var mapDispatchToProps = function (dispatch) {
+	    return {
+	        submitForm: function (poll) { dispatch(actions.submitPollForm(poll)); }
+	    };
+	};
+	exports.PollFormContainer = react_redux_1.connect(mapStateToProps, mapDispatchToProps)(PollForm_1.PollForm);
+
+
+/***/ },
+/* 284 */
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+	var __extends = (this && this.__extends) || function (d, b) {
+	    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+	    function __() { this.constructor = d; }
+	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+	};
+	var React = __webpack_require__(1);
+	var PollForm = (function (_super) {
+	    __extends(PollForm, _super);
+	    function PollForm(props) {
+	        var _this = _super.call(this, props) || this;
+	        // Pre-bind methods
+	        _this.handleAddResponseField = _this.handleAddResponseField.bind(_this);
+	        _this.handleDeleteResponseField = _this.handleDeleteResponseField.bind(_this);
+	        _this.handleSubmitForm = _this.handleSubmitForm.bind(_this);
+	        _this.handleChange = _this.handleChange.bind(_this);
+	        // Set initial state
+	        _this.state = {
+	            pollQuestion: '',
+	            // Set the responses array to 3 empty strings to prevent React from complaining that we're switching from uncontrolled to controlled inputs
+	            responses: [
+	                '',
+	                '',
+	                ''
+	            ]
+	        };
+	        return _this;
+	    }
+	    PollForm.prototype.handleAddResponseField = function () {
+	        var newResponses = this.state.responses;
+	        newResponses.push('');
+	        this.setState({
+	            responses: newResponses,
+	            pollQuestion: this.state.pollQuestion
+	        });
+	    };
+	    PollForm.prototype.handleDeleteResponseField = function (index) {
+	        var newResponses = this.state.responses.filter(function (response, i) { return i !== index; });
+	        this.setState({
+	            responses: newResponses,
+	            pollQuestion: this.state.pollQuestion
+	        });
+	    };
+	    PollForm.prototype.handleChange = function (event) {
+	        var newPollQuestion = (event.target.name == "pollQuestion") ? event.target.value : this.state.pollQuestion;
+	        var newResponses = [];
+	        for (var i = 0; i < this.state.responses.length; i++) {
+	            newResponses[i] = (event.target.name == "responseField" + i) ? event.target.value : this.state.responses[i];
+	        }
+	        this.setState({
+	            pollQuestion: newPollQuestion,
+	            responses: newResponses
+	        });
+	    };
+	    PollForm.prototype.handleSubmitForm = function (event) {
+	        event.preventDefault();
+	        this.props.submitForm(this.state);
+	        this.setState({
+	            pollQuestion: '',
+	            responses: [
+	                '',
+	                '',
+	                ''
+	            ]
+	        });
+	    };
+	    PollForm.prototype.render = function () {
+	        var _this = this;
+	        var responseFields = [];
+	        var _loop_1 = function (i) {
+	            var elementName = "responseField" + i;
+	            responseFields.push(React.createElement("div", { className: "form-group", key: elementName },
+	                React.createElement("label", { htmlFor: elementName }, "Response"),
+	                React.createElement("div", { className: "input-group" },
+	                    React.createElement("input", { type: "text", className: "form-control", id: elementName, name: elementName, value: this_1.state.responses[i], onChange: this_1.handleChange, placeholder: "Response" }),
+	                    React.createElement("span", { className: "input-group-btn" },
+	                        React.createElement("button", { className: "btn btn-default", onClick: function () { _this.handleDeleteResponseField(i); }, type: "button" },
+	                            React.createElement("i", { className: "fa fa-trash-o" }))))));
+	        };
+	        var this_1 = this;
+	        for (var i = 0; i < this.state.responses.length; i++) {
+	            _loop_1(i);
+	        }
+	        return (React.createElement("div", { className: "container PollForm" },
+	            React.createElement("form", null,
+	                React.createElement("div", { className: "form-group" },
+	                    React.createElement("label", { htmlFor: "pollQuestion" }, "Question:"),
+	                    React.createElement("input", { type: "text", className: "form-control", id: "pollQuestion", name: "pollQuestion", value: this.state.pollQuestion, onChange: this.handleChange, placeholder: "Question" })),
+	                responseFields,
+	                React.createElement("div", { className: "text-center" },
+	                    React.createElement("div", { className: "btn-group btn-group-lg", role: "group" },
+	                        React.createElement("button", { type: "submit", className: "btn btn-primary", onClick: this.handleSubmitForm }, "Submit/Save"),
+	                        React.createElement("button", { type: "button", className: "btn btn-default", onClick: this.handleAddResponseField }, "Add response field"))))));
+	    };
+	    return PollForm;
+	}(React.Component));
+	exports.PollForm = PollForm;
 
 
 /***/ }

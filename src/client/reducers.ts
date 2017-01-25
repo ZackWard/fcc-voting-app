@@ -1,7 +1,7 @@
 import * as actions from './actions';
 
 interface appState {
-    apiToken?: string | null,
+    apiToken: string | null,
     registerUserError?: string;
 }
 
@@ -34,6 +34,15 @@ export const reducer = (state = initialState, action) => {
             return newState;
         case actions.REGISTER_USER_FAILURE:
             newState.registerUserError = action.message;
+            console.log(action.message);
+            return newState;
+        case actions.SUBMIT_POLL_FORM:
+            console.log(action.message);
+            return newState;
+        case actions.SUBMIT_POLL_SUCCESS:
+            console.log(action.message);
+            return newState;
+        case actions.SUBMIT_POLL_FAILURE:
             console.log(action.message);
             return newState;
         default: 
