@@ -1,11 +1,20 @@
 import * as React from 'react';
+import { connect } from "react-redux";
+import * as actions from "../actions";
 import { Link } from 'react-router';
 
 interface NavProps {
-    token?: String | null
+    user: string | null,
+    doLogout: () => void
 }
 
-export const Nav = (props: NavProps) => {
+const NavComponent = (props: NavProps) => {
+    let loginOrRegister = [
+        <li key="register"><Link to="/register">Register</Link></li>,
+        <li key="login"><Link to="/login">Login</Link></li>
+    ];
+    let logOut = <li><a onClick={event => {event.preventDefault(); props.doLogout();}} href="#">Logout</a></li>;
+    
     return (
         <nav className="navbar navbar-default">
             <div className="container-fluid">
@@ -22,8 +31,9 @@ export const Nav = (props: NavProps) => {
                 <div className="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
                     <ul className="nav navbar-nav">
                         <li className="active"><a href="#">Link <span className="sr-only">(current)</span></a></li>
-                        <li><Link to="/register">Register</Link></li>
-                        <li><Link to="/login">Login</Link></li>
+                        {
+                            props.user == null ? loginOrRegister : logOut
+                        }
                         <li><Link to="/polls/new">New Poll</Link></li>
                         <li className="dropdown">
                             <a href="#" className="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Dropdown <span className="caret"></span></a>
@@ -32,7 +42,7 @@ export const Nav = (props: NavProps) => {
                                 <li><a href="#">Another action</a></li>
                                 <li><a href="#">Something else here</a></li>
                                 <li role="separator" className="divider"></li>
-                                <li><a href="#">{props.token}</a></li>
+                                <li><a href="#">Separated action</a></li>
                                 <li role="separator" className="divider"></li>
                                 <li><a href="#">One more separated link</a></li>
                             </ul>
@@ -43,3 +53,14 @@ export const Nav = (props: NavProps) => {
         </nav>
     );
 };
+
+const mapStateToProps = state => {
+    return {
+        user: state.user
+    };
+};
+const mapDispatchToProps = {
+    doLogout: actions.doLogout
+};
+
+export const Nav = connect(mapStateToProps, mapDispatchToProps)(NavComponent);

@@ -1,7 +1,11 @@
 import * as React from "react";
+import { connect } from "react-redux";
+import * as actions from "../actions";
 
 interface PollFormProps {
-    submitForm: (props: any) => any
+    submitForm: (poll: any) => any,
+    user: null | string,
+    error: null | string
 }
 
 interface PollFormState {
@@ -9,7 +13,7 @@ interface PollFormState {
     responses: string[]
 }
 
-export class PollForm extends React.Component<PollFormProps, PollFormState> {
+export class PollFormComponent extends React.Component<PollFormProps, PollFormState> {
 
     constructor(props: PollFormProps) {
         super(props);
@@ -63,18 +67,30 @@ export class PollForm extends React.Component<PollFormProps, PollFormState> {
 
     handleSubmitForm(event) {
         event.preventDefault();
-        this.props.submitForm(this.state);
-        this.setState({
-            pollQuestion: '',
-            responses: [
-                '',
-                '',
-                ''
-            ]
+        let poll: any = {
+            token: window.localStorage.getItem('fcc-vote-app-api-key'),
+            question: this.state.pollQuestion,
+            responses: this.state.responses
+        };
+        poll.responses = poll.responses.filter(responseString => responseString.length >= 1);
+        poll.responses = poll.responses.map(responseString => {
+            return {
+                response: responseString,
+                votes: []
+            };
         });
+        this.props.submitForm(poll);
     }
 
     render() {
+        if (this.props.user == null) {
+            return (
+                <div>
+                    <h1>Please login to add or edit forms</h1>
+                </div>
+            );
+        }
+
         let responseFields: any = [];
         for (let i: number = 0; i < this.state.responses.length; i++) {
             let elementName = "responseField" + i;
@@ -94,6 +110,9 @@ export class PollForm extends React.Component<PollFormProps, PollFormState> {
         return (
             <div className="container PollForm">
                 <form>
+                    { this.props.error && 
+                        <div className="alert alert-danger" role="alert">{this.props.error}</div>
+                    }
                     <div className="form-group">
                         <label htmlFor="pollQuestion">Question:</label>
                         <input type="text" className="form-control" id="pollQuestion" name="pollQuestion" value={this.state.pollQuestion} onChange={this.handleChange} placeholder="Question" />
@@ -110,3 +129,18 @@ export class PollForm extends React.Component<PollFormProps, PollFormState> {
         );
     }
 }
+
+const mapStateToProps = (state) => {
+    return {
+        user: state.user,
+        error: state.pollForm.error
+    };
+};
+
+const mapDispatchToProps = (dispatch) => {
+    return {
+        submitForm: (poll) => {dispatch(actions.submitPollForm(poll))}
+    };
+};
+
+export const PollForm = connect(mapStateToProps, mapDispatchToProps)(PollFormComponent);

@@ -112,9 +112,57 @@ function addPoll(poll) {
         if (state.db == null) {
             return reject("Database not available.");
         }
-        state.db.collection('polls').insertOne(poll)
-            .then(() => resolve())
-            .catch((e) => reject(e));
+        getMaxId()
+            .then((maxId) => {
+            console.log("Max ID: " + maxId);
+            poll.poll_id = maxId + 1;
+            return state.db.collection('polls').insertOne(poll);
+        })
+            .then(() => resolve(poll))
+            .catch(e => {
+            console.log("Insertion error: " + e);
+            return reject(e);
+        });
     });
 }
 exports.addPoll = addPoll;
+function getMaxId() {
+    return new Promise(function (resolve, reject) {
+        if (state.db == null) {
+            return reject("Database not available.");
+        }
+        let aggregation = [
+            { $group: { _id: null, max_id: { $max: "$poll_id" } }
+            },
+        ];
+        state.db.collection('polls').aggregate(aggregation, function (err, result) {
+            if (err) {
+                console.log("Aggregation Error");
+                return reject(err);
+            }
+            if (result.length == 0) {
+                return resolve(0);
+            }
+            else {
+                return resolve(Number(result[0].max_id));
+            }
+        });
+    });
+}
+function getPoll(poll_id) {
+    return new Promise(function (resolve, reject) {
+        if (state.db == null) {
+            return reject("Database not available.");
+        }
+        let query = {
+            poll_id: Number(poll_id)
+        };
+        state.db.collection('polls').findOne(query)
+            .then(doc => {
+            console.log(doc);
+            return resolve(doc);
+        })
+            .catch(e => reject(e));
+    });
+}
+exports.getPoll = getPoll;

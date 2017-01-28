@@ -131,6 +131,8 @@ interface PollResponse {
 
 interface Poll {
     _id?: String,
+    poll_id?: Number,
+    addedAt: Date,
     username: String,
     question: String,
     responses: PollResponse[]
@@ -141,8 +143,68 @@ export function addPoll(poll: Poll) {
         if (state.db == null) {
             return reject("Database not available.");
         }
-        state.db.collection('polls').insertOne(poll)
-            .then(() => resolve())
-            .catch((e) => reject(e));
+        getMaxId()
+        .then((maxId: number) => {
+            console.log("Max ID: " + maxId);
+            poll.poll_id = maxId + 1;
+            return state.db.collection('polls').insertOne(poll);
+        })
+        .then(() => resolve(poll))
+        .catch(e => {
+            console.log("Insertion error: " + e);
+            return reject(e);
+        });
+    });
+}
+
+function getMaxId() {
+    return new Promise(function (resolve, reject) {
+        if (state.db == null) {
+            return reject("Database not available.");
+        }
+        let aggregation = [
+            { $group: 
+                {_id: null, max_id: {$max: "$poll_id"} } 
+            },
+        ];
+        state.db.collection('polls').aggregate(aggregation, function (err, result) {
+            if (err) {
+                console.log("Aggregation Error");
+                return reject(err);
+            }
+            if (result.length == 0) {
+                return resolve(0);
+            } else {
+                return resolve(Number(result[0].max_id));
+            }
+        });
+    });
+}
+
+export function getPoll(poll_id: number) {
+    return new Promise(function (resolve, reject) {
+        if (state.db == null) {
+            return reject("Database not available.");
+        }
+        let query = {
+            poll_id: Number(poll_id)
+        };
+        state.db.collection('polls').findOne(query)
+        .then(doc => {
+            console.log(doc);
+            return resolve(doc);
+        })
+        .catch(e => reject(e));
+    });
+}
+
+export function getRecentPolls() {
+    return new Promise(function (resolve, reject) {
+        if (state.db == null) {
+            return reject("Database not available");
+        }
+        state.db.collection('polls').find({}).sort({addedAt: -1}).toArray()
+        .then(docs => resolve(docs))
+        .catch(error => reject(error));
     });
 }

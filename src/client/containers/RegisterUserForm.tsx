@@ -1,4 +1,6 @@
 import * as React from "react";
+import { connect } from "react-redux";
+import * as actions from "../actions";
 
 interface RegisterUserFormProps {
     onRegister: (userInfo) => null,
@@ -12,7 +14,7 @@ interface RegisterUserFormState {
     passwordVerification?: string
 }
 
-export class RegisterUserForm extends React.Component<RegisterUserFormProps, RegisterUserFormState> {
+export class RegisterUserFormComponent extends React.Component<RegisterUserFormProps, RegisterUserFormState> {
     constructor(props: RegisterUserFormProps) {
         super(props);
         this.handleChange = this.handleChange.bind(this);
@@ -83,3 +85,19 @@ export class RegisterUserForm extends React.Component<RegisterUserFormProps, Reg
         );
     }
 }
+
+const mapStateToProps = (state) => {
+    let newProps: any = {};
+    if (state.registerUserError !== undefined) {
+        newProps.error = state.registerUserError;
+    }
+    return newProps;
+};
+
+const mapDispatchToProps = (dispatch) => {
+    return {
+        onRegister: (userInfo) => { dispatch(actions.beginRegister(userInfo)) }
+    };
+};
+
+export const RegisterUserForm = connect(mapStateToProps, mapDispatchToProps)(RegisterUserFormComponent);

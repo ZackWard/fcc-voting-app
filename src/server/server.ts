@@ -1,3 +1,4 @@
+import * as path from 'path';
 import * as dotenv from 'dotenv';
 import * as express from 'express';
 import * as helmet from 'helmet';
@@ -15,7 +16,7 @@ var port = 3005;
 app.use(helmet());
 const jsonParser = bodyParser.json();
 // app.use(mongoSanitize());
-app.use('/static', express.static(__dirname + '/public'));
+app.use('/static', express.static(path.join(__dirname, '/public')));
 
 app.post('/api/register', jsonParser, mongoSanitize(), function (req, res) {
     let username = req.body.username;
@@ -27,10 +28,49 @@ app.post('/api/register', jsonParser, mongoSanitize(), function (req, res) {
         .catch((e) => {res.status(500).json(e)});
 });
 
-app.post('/api/poll', jsonParser, mongoSanitize(), function (req, res) {
+app.get('/api/polls/:poll_id', jsonParser, mongoSanitize(), function (req, res) {
+    db.getPoll(req.params.poll_id)
+    .then(poll => res.json(poll))
+    .catch(error => res.status(500).json({
+        error: "Error getting poll"
+    }));
+});
+
+app.post('/api/polls', jsonParser, mongoSanitize(), function (req, res) {
     console.log(req.body);
-    res.json({
-        message: "Post added! Yippee!"
+    
+    // TODO Validate poll. There should be, at a minimum, 1 question and 2 responses.
+    if (req.body.question.length < 1 || req.body.responses.length < 2) {
+        return res.status(400).json({
+            error: "Invalid input. A poll must have at least one question and at least two responses."
+        });
+    }
+
+    // Check for a valid token
+    jwt.verify(req.body.token, process.env.VOTE_APP_JWT_SECRET, function (err, payload) {
+        if (err) {
+            // Error, invalid token
+            console.log("Invalid Token");
+            res.status(401).json({
+                error: "Not authorized"
+            });
+        } else {
+            // Return a success message
+            console.log("Valid Token for " + payload.user);
+            db.addPoll({
+                question: req.body.question,
+                responses: req.body.responses,
+                username: payload.user,
+                addedAt: new Date()
+            })
+            .then(poll => {
+                res.json({
+                    message: "Post added! Yippee!",
+                    pollId: poll["_id"]
+                });
+            })
+            .catch(error => { res.status(500).json({error: "Server Error"})});
+        }    
     });
 });
 
@@ -61,10 +101,11 @@ app.post('/api/login', jsonParser, mongoSanitize(), function (req, res) {
         .catch(e => {res.end("Error: " + e)});
 });
 
-app.get('/', function (req, res) {
-    res.sendFile(__dirname + "/public/index.html");
+app.get('*', function (req, res) {
+    res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
+// Start the app
 db.connect()
     .then(() => {
         app.listen(port, 'localhost', function () {

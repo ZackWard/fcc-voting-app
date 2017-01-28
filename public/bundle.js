@@ -53,16 +53,19 @@
 	var react_redux_1 = __webpack_require__(255);
 	var reducers_1 = __webpack_require__(270);
 	var VotingApp_1 = __webpack_require__(276);
-	var RegisterUserFormContainer_1 = __webpack_require__(279);
-	var LoginFormContainer_1 = __webpack_require__(281);
-	var PollFormContainer_1 = __webpack_require__(283);
+	var PollList_1 = __webpack_require__(278);
+	var RegisterUserForm_1 = __webpack_require__(280);
+	var LoginForm_1 = __webpack_require__(281);
+	var PollForm_1 = __webpack_require__(282);
 	var store = redux_1.createStore(reducers_1.reducer, redux_1.applyMiddleware(redux_thunk_1.default));
 	ReactDOM.render(React.createElement(react_redux_1.Provider, { store: store },
-	    React.createElement(react_router_1.Router, { history: react_router_1.hashHistory },
+	    React.createElement(react_router_1.Router, { history: react_router_1.browserHistory },
 	        React.createElement(react_router_1.Route, { path: "/", component: VotingApp_1.VotingApp },
-	            React.createElement(react_router_1.Route, { path: "/login", component: LoginFormContainer_1.LoginFormContainer }),
-	            React.createElement(react_router_1.Route, { path: "/register", component: RegisterUserFormContainer_1.RegisterUserFormContainer }),
-	            React.createElement(react_router_1.Route, { path: "/polls/new", component: PollFormContainer_1.PollFormContainer })))), document.getElementById('app'));
+	            React.createElement(react_router_1.Route, { path: "/login", component: LoginForm_1.LoginForm }),
+	            React.createElement(react_router_1.Route, { path: "/register", component: RegisterUserForm_1.RegisterUserForm }),
+	            React.createElement(react_router_1.Route, { path: "/polls/new", component: PollForm_1.PollForm }),
+	            React.createElement(react_router_1.Route, { path: "/polls/:pollId/edit", component: PollForm_1.PollForm }),
+	            React.createElement(react_router_1.Route, { path: "/polls/:pollId", component: PollList_1.PollList })))), document.getElementById('app'));
 
 
 /***/ },
@@ -28679,8 +28682,13 @@
 
 	"use strict";
 	var actions = __webpack_require__(271);
+	// Import react router history so that we can navigate programmatically.
+	var react_router_1 = __webpack_require__(178);
 	var initialState = {
-	    apiToken: window.localStorage.getItem('fcc-vote-app-api-key')
+	    user: window.localStorage.getItem('fcc-vote-app-user') == null ? null : window.localStorage.getItem('fcc-vote-app-user'),
+	    pollForm: {
+	        error: null
+	    }
 	};
 	exports.reducer = function (state, action) {
 	    if (state === void 0) { state = initialState; }
@@ -28693,10 +28701,18 @@
 	        case actions.LOGIN_SUCCESS:
 	            console.log(action.message);
 	            window.localStorage.setItem('fcc-vote-app-api-key', action.apiToken);
-	            newState.apiToken = action.apiToken;
+	            window.localStorage.setItem('fcc-vote-app-user', action.user);
+	            newState.user = action.user;
+	            react_router_1.browserHistory.push('/');
 	            return newState;
 	        case actions.LOGIN_FAILURE:
 	            console.log(action.message);
+	            return newState;
+	        case actions.LOGOUT:
+	            console.log(action.message);
+	            window.localStorage.removeItem('fcc-vote-app-api-key');
+	            window.localStorage.removeItem('fcc-vote-app-user');
+	            newState.user = null;
 	            return newState;
 	        case actions.BEGIN_REGISTER_USER:
 	            delete newState.registerUserError;
@@ -28704,6 +28720,7 @@
 	            return newState;
 	        case actions.REGISTER_USER_SUCCESS:
 	            console.log(action.message);
+	            react_router_1.browserHistory.push('/');
 	            return newState;
 	        case actions.REGISTER_USER_FAILURE:
 	            newState.registerUserError = action.message;
@@ -28714,9 +28731,12 @@
 	            return newState;
 	        case actions.SUBMIT_POLL_SUCCESS:
 	            console.log(action.message);
+	            console.log("Poll ID: " + action.pollId);
+	            // hashHistory.push('/polls');
 	            return newState;
 	        case actions.SUBMIT_POLL_FAILURE:
 	            console.log(action.message);
+	            newState.pollForm.error = action.error;
 	            return newState;
 	        default:
 	            return newState;
@@ -28736,45 +28756,43 @@
 	exports.LOGIN_SUCCESS = "LOGIN_SUCCESS";
 	exports.LOGIN_FAILURE = "LOGIN_FAILURE";
 	exports.LOGIN_TOKEN_EXPIRED = "LOGIN_TOKEN_EXPIRED";
+	exports.LOGOUT = "LOGOUT";
 	exports.BEGIN_REGISTER_USER = "BEGIN_REGISTER_USER";
 	exports.REGISTER_USER_SUCCESS = "REGISTER_USER_SUCCESS";
 	exports.REGISTER_USER_FAILURE = "REGISTER_USER_FAILURE";
 	exports.SUBMIT_POLL_FORM = "SUBMIT_POLL_FORM";
 	exports.SUBMIT_POLL_SUCCESS = "SUBMIT_POLL_SUCCESS";
 	exports.SUBMIT_POLL_FAILURE = "SUBMIT_POLL_FAILURE";
+	exports.BEGIN_RETRIEVE_POLLS = "BEGIN_RETRIEVE_POLLS";
+	exports.RETRIEVE_POLLS_SUCCESS = "RETRIEVE_POLLS_SUCCESS";
+	exports.RETRIEVE_POLLS_FAILURE = "RETRIEVE_POLLS_FAILURE";
+	function doApiCall(url, body) {
+	    var myInit = {
+	        method: "POST",
+	        headers: {
+	            'Content-Type': 'application/json'
+	        },
+	        body: JSON.stringify(body)
+	    };
+	    var myRequest = new Request(url, myInit);
+	    return fetch(myRequest);
+	}
+	exports.doApiCall = doApiCall;
 	function submitPollForm(poll) {
 	    return function (dispatch) {
 	        dispatch({
 	            type: exports.SUBMIT_POLL_FORM,
 	            message: "Poll Form Submitted"
 	        });
-	        // Modify the poll object to make sure that it's the right format for the database
-	        poll.responses = poll.responses.map(function (responseString) {
-	            return {
-	                response: responseString,
-	                votes: []
-	            };
-	        });
 	        // Do API call here
-	        var myInit = {
-	            method: "POST",
-	            headers: {
-	                'Content-Type': 'application/json'
-	            },
-	            body: JSON.stringify({
-	                username: "BLAH",
-	                question: poll.pollQuestion,
-	                responses: poll.responses
-	            })
-	        };
-	        var myRequest = new Request('/api/poll', myInit);
-	        fetch(myRequest)
+	        doApiCall('/api/polls', poll)
 	            .then(function (response) {
 	            if (response.ok) {
 	                response.json().then(function (json) {
 	                    dispatch({
 	                        type: exports.SUBMIT_POLL_SUCCESS,
-	                        message: json.message
+	                        message: json.message,
+	                        pollId: json.pollId
 	                    });
 	                });
 	            }
@@ -28782,6 +28800,7 @@
 	                response.json().then(function (json) {
 	                    dispatch({
 	                        type: exports.SUBMIT_POLL_FAILURE,
+	                        error: json.error,
 	                        message: "Error saving form: " + json.error
 	                    });
 	                });
@@ -28804,24 +28823,18 @@
 	            message: "Trying to register user with username " + userInfo.username + " and email " + userInfo.email
 	        });
 	        // Do API call here
-	        var myInit = {
-	            method: "POST",
-	            headers: {
-	                'Content-Type': 'application/json'
-	            },
-	            body: JSON.stringify({
-	                username: userInfo.username,
-	                email: userInfo.email,
-	                password: userInfo.password
-	            })
-	        };
-	        var myRequest = new Request('/api/register', myInit);
-	        fetch(myRequest)
+	        doApiCall('/api/register', {
+	            username: userInfo.username,
+	            email: userInfo.email,
+	            password: userInfo.password
+	        })
 	            .then(function (response) {
 	            if (response.ok) {
-	                dispatch({
-	                    type: exports.REGISTER_USER_SUCCESS,
-	                    message: "Registered user!"
+	                response.json().then(function (json) {
+	                    dispatch({
+	                        type: exports.REGISTER_USER_SUCCESS,
+	                        message: "Registered user!"
+	                    });
 	                });
 	            }
 	            else {
@@ -28849,25 +28862,18 @@
 	            message: "Begin Login"
 	        });
 	        // Do API call here
-	        var myInit = {
-	            method: "POST",
-	            headers: {
-	                'Content-Type': 'application/json'
-	            },
-	            body: JSON.stringify({
-	                username: username,
-	                password: password
-	            })
-	        };
-	        var myRequest = new Request('/api/login', myInit);
-	        fetch(myRequest)
+	        doApiCall('/api/login', {
+	            username: username,
+	            password: password
+	        })
 	            .then(function (response) {
 	            if (response.ok) {
 	                response.json().then(function (json) {
 	                    dispatch({
 	                        type: exports.LOGIN_SUCCESS,
 	                        message: "Logged in!",
-	                        apiToken: json.apiToken
+	                        apiToken: json.apiToken,
+	                        user: username
 	                    });
 	                });
 	            }
@@ -28889,6 +28895,23 @@
 	    };
 	}
 	exports.beginLogin = beginLogin;
+	function doLogout() {
+	    return {
+	        type: exports.LOGOUT,
+	        message: "Logged out"
+	    };
+	}
+	exports.doLogout = doLogout;
+	function retrievePolls(polls) {
+	    return function (dispatch) {
+	        dispatch({
+	            type: exports.BEGIN_RETRIEVE_POLLS,
+	            message: "Retrieving polls from server"
+	        });
+	        // Do API call
+	    };
+	}
+	exports.retrievePolls = retrievePolls;
 	function tokenExpired() {
 	    return {
 	        type: exports.LOGIN_TOKEN_EXPIRED,
@@ -29860,15 +29883,36 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	var React = __webpack_require__(1);
-	var NavContainer_1 = __webpack_require__(277);
-	exports.VotingApp = function (props) {
-	    return (React.createElement("div", null,
-	        React.createElement(NavContainer_1.NavContainer, null),
-	        React.createElement("h1", null, "Free Code Camp Voting App"),
-	        React.createElement("h2", null, "by Zack Ward"),
-	        props.children));
+	var __extends = (this && this.__extends) || function (d, b) {
+	    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+	    function __() { this.constructor = d; }
+	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 	};
+	var React = __webpack_require__(1);
+	var react_redux_1 = __webpack_require__(255);
+	var Nav_1 = __webpack_require__(277);
+	var VotingAppComponent = (function (_super) {
+	    __extends(VotingAppComponent, _super);
+	    function VotingAppComponent(props) {
+	        return _super.call(this, props) || this;
+	    }
+	    VotingAppComponent.prototype.componentWillMount = function () {
+	    };
+	    VotingAppComponent.prototype.render = function () {
+	        return (React.createElement("div", null,
+	            React.createElement(Nav_1.Nav, null),
+	            this.props.children));
+	    };
+	    return VotingAppComponent;
+	}(React.Component));
+	exports.VotingAppComponent = VotingAppComponent;
+	var mapStateToProps = function (state) {
+	    return {};
+	};
+	var mapDispatchToProps = function (dispatch) {
+	    return {};
+	};
+	exports.VotingApp = react_redux_1.connect(mapStateToProps, mapDispatchToProps)(VotingAppComponent);
 
 
 /***/ },
@@ -29876,24 +29920,19 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	var react_redux_1 = __webpack_require__(255);
-	var Nav_1 = __webpack_require__(278);
-	var mapStateToProps = function (state) {
-	    return {
-	        token: state.apiToken
-	    };
-	};
-	exports.NavContainer = react_redux_1.connect(mapStateToProps)(Nav_1.Nav);
-
-
-/***/ },
-/* 278 */
-/***/ function(module, exports, __webpack_require__) {
-
-	"use strict";
 	var React = __webpack_require__(1);
+	var react_redux_1 = __webpack_require__(255);
+	var actions = __webpack_require__(271);
 	var react_router_1 = __webpack_require__(178);
-	exports.Nav = function (props) {
+	var NavComponent = function (props) {
+	    var loginOrRegister = [
+	        React.createElement("li", { key: "register" },
+	            React.createElement(react_router_1.Link, { to: "/register" }, "Register")),
+	        React.createElement("li", { key: "login" },
+	            React.createElement(react_router_1.Link, { to: "/login" }, "Login"))
+	    ];
+	    var logOut = React.createElement("li", null,
+	        React.createElement("a", { onClick: function (event) { event.preventDefault(); props.doLogout(); }, href: "#" }, "Logout"));
 	    return (React.createElement("nav", { className: "navbar navbar-default" },
 	        React.createElement("div", { className: "container-fluid" },
 	            React.createElement("div", { className: "navbar-header" },
@@ -29909,10 +29948,7 @@
 	                        React.createElement("a", { href: "#" },
 	                            "Link ",
 	                            React.createElement("span", { className: "sr-only" }, "(current)"))),
-	                    React.createElement("li", null,
-	                        React.createElement(react_router_1.Link, { to: "/register" }, "Register")),
-	                    React.createElement("li", null,
-	                        React.createElement(react_router_1.Link, { to: "/login" }, "Login")),
+	                    props.user == null ? loginOrRegister : logOut,
 	                    React.createElement("li", null,
 	                        React.createElement(react_router_1.Link, { to: "/polls/new" }, "New Poll")),
 	                    React.createElement("li", { className: "dropdown" },
@@ -29928,11 +29964,74 @@
 	                                React.createElement("a", { href: "#" }, "Something else here")),
 	                            React.createElement("li", { role: "separator", className: "divider" }),
 	                            React.createElement("li", null,
-	                                React.createElement("a", { href: "#" }, props.token)),
+	                                React.createElement("a", { href: "#" }, "Separated action")),
 	                            React.createElement("li", { role: "separator", className: "divider" }),
 	                            React.createElement("li", null,
 	                                React.createElement("a", { href: "#" }, "One more separated link")))))))));
 	};
+	var mapStateToProps = function (state) {
+	    return {
+	        user: state.user
+	    };
+	};
+	var mapDispatchToProps = {
+	    doLogout: actions.doLogout
+	};
+	exports.Nav = react_redux_1.connect(mapStateToProps, mapDispatchToProps)(NavComponent);
+
+
+/***/ },
+/* 278 */
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+	var __extends = (this && this.__extends) || function (d, b) {
+	    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+	    function __() { this.constructor = d; }
+	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+	};
+	var React = __webpack_require__(1);
+	var Poll_1 = __webpack_require__(279);
+	var PollList = (function (_super) {
+	    __extends(PollList, _super);
+	    function PollList(props) {
+	        var _this = _super.call(this, props) || this;
+	        _this.state = {
+	            id: null,
+	            question: "Question",
+	            responses: []
+	        };
+	        var myInit = { method: "GET" };
+	        var myRequest = new Request('/api/polls/' + _this.props.params.pollId, myInit);
+	        fetch(myRequest)
+	            .then(function (response) {
+	            if (response.ok) {
+	                response.json().then(function (json) {
+	                    _this.setState({
+	                        id: json.poll_id,
+	                        question: json.question,
+	                        responses: json.responses.map(function (response) {
+	                            return {
+	                                response: response.response,
+	                                votes: response.votes.length
+	                            };
+	                        })
+	                    });
+	                });
+	            }
+	        })
+	            .catch(function (error) {
+	            console.log(error);
+	        });
+	        return _this;
+	    }
+	    PollList.prototype.render = function () {
+	        return (React.createElement("div", { className: "container" },
+	            React.createElement(Poll_1.Poll, { id: this.state.id, question: this.state.question, responses: this.state.responses })));
+	    };
+	    return PollList;
+	}(React.Component));
+	exports.PollList = PollList;
 
 
 /***/ },
@@ -29940,22 +30039,33 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	var react_redux_1 = __webpack_require__(255);
-	var RegisterUserForm_1 = __webpack_require__(280);
-	var actions = __webpack_require__(271);
-	var mapStateToProps = function (state) {
-	    var newProps = {};
-	    if (state.registerUserError !== undefined) {
-	        newProps.error = state.registerUserError;
+	var __extends = (this && this.__extends) || function (d, b) {
+	    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+	    function __() { this.constructor = d; }
+	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+	};
+	var React = __webpack_require__(1);
+	var Poll = (function (_super) {
+	    __extends(Poll, _super);
+	    function Poll(props) {
+	        return _super.call(this, props) || this;
 	    }
-	    return newProps;
-	};
-	var mapDispatchToProps = function (dispatch) {
-	    return {
-	        onRegister: function (userInfo) { dispatch(actions.beginRegister(userInfo)); }
+	    Poll.prototype.render = function () {
+	        return (React.createElement("div", { className: "panel panel-default" },
+	            React.createElement("div", { className: "panel-heading" },
+	                React.createElement("h3", { className: "panel-title" }, this.props.question)),
+	            React.createElement("div", { className: "panel-body" },
+	                React.createElement("ul", null, this.props.responses.map(function (response, index) {
+	                    return (React.createElement("li", { key: index },
+	                        response.response,
+	                        " (",
+	                        response.votes,
+	                        ")"));
+	                })))));
 	    };
-	};
-	exports.RegisterUserFormContainer = react_redux_1.connect(mapStateToProps, mapDispatchToProps)(RegisterUserForm_1.RegisterUserForm);
+	    return Poll;
+	}(React.Component));
+	exports.Poll = Poll;
 
 
 /***/ },
@@ -29969,9 +30079,11 @@
 	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 	};
 	var React = __webpack_require__(1);
-	var RegisterUserForm = (function (_super) {
-	    __extends(RegisterUserForm, _super);
-	    function RegisterUserForm(props) {
+	var react_redux_1 = __webpack_require__(255);
+	var actions = __webpack_require__(271);
+	var RegisterUserFormComponent = (function (_super) {
+	    __extends(RegisterUserFormComponent, _super);
+	    function RegisterUserFormComponent(props) {
 	        var _this = _super.call(this, props) || this;
 	        _this.handleChange = _this.handleChange.bind(_this);
 	        _this.handleRegister = _this.handleRegister.bind(_this);
@@ -29983,13 +30095,13 @@
 	        };
 	        return _this;
 	    }
-	    RegisterUserForm.prototype.handleChange = function (event) {
+	    RegisterUserFormComponent.prototype.handleChange = function (event) {
 	        this.setState((_a = {},
 	            _a[event.target.name] = event.target.value,
 	            _a));
 	        var _a;
 	    };
-	    RegisterUserForm.prototype.handleRegister = function (event) {
+	    RegisterUserFormComponent.prototype.handleRegister = function (event) {
 	        event.preventDefault();
 	        if (this.state.password !== this.state.passwordVerification) {
 	            alert("Passwords do not match!");
@@ -30008,7 +30120,7 @@
 	        });
 	        this.props.onRegister(userInfo);
 	    };
-	    RegisterUserForm.prototype.render = function () {
+	    RegisterUserFormComponent.prototype.render = function () {
 	        return (React.createElement("div", { className: "container" },
 	            React.createElement("form", null,
 	                React.createElement("h1", null, "New User"),
@@ -30028,9 +30140,22 @@
 	                    React.createElement("input", { type: "password", className: "form-control", id: "passwordVerification", name: "passwordVerification", onChange: this.handleChange, placeholder: "Password", value: this.state.passwordVerification })),
 	                React.createElement("button", { type: "submit", className: "btn btn-primary", onClick: this.handleRegister }, "Register"))));
 	    };
-	    return RegisterUserForm;
+	    return RegisterUserFormComponent;
 	}(React.Component));
-	exports.RegisterUserForm = RegisterUserForm;
+	exports.RegisterUserFormComponent = RegisterUserFormComponent;
+	var mapStateToProps = function (state) {
+	    var newProps = {};
+	    if (state.registerUserError !== undefined) {
+	        newProps.error = state.registerUserError;
+	    }
+	    return newProps;
+	};
+	var mapDispatchToProps = function (dispatch) {
+	    return {
+	        onRegister: function (userInfo) { dispatch(actions.beginRegister(userInfo)); }
+	    };
+	};
+	exports.RegisterUserForm = react_redux_1.connect(mapStateToProps, mapDispatchToProps)(RegisterUserFormComponent);
 
 
 /***/ },
@@ -30038,15 +30163,56 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	var LoginForm_1 = __webpack_require__(282);
-	var actions_1 = __webpack_require__(271);
+	var __extends = (this && this.__extends) || function (d, b) {
+	    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+	    function __() { this.constructor = d; }
+	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+	};
+	var React = __webpack_require__(1);
 	var react_redux_1 = __webpack_require__(255);
+	var actions_1 = __webpack_require__(271);
+	var LoginFormComponent = (function (_super) {
+	    __extends(LoginFormComponent, _super);
+	    function LoginFormComponent(props) {
+	        var _this = _super.call(this, props) || this;
+	        _this.handleChange = _this.handleChange.bind(_this);
+	        _this.handleSubmit = _this.handleSubmit.bind(_this);
+	        _this.state = {
+	            username: '',
+	            password: ''
+	        };
+	        return _this;
+	    }
+	    LoginFormComponent.prototype.handleChange = function (event) {
+	        this.setState((_a = {},
+	            _a[event.target.name] = event.target.value,
+	            _a));
+	        var _a;
+	    };
+	    LoginFormComponent.prototype.handleSubmit = function (event) {
+	        event.preventDefault();
+	        this.props.onSubmitLogin(this.state.username, this.state.password);
+	    };
+	    LoginFormComponent.prototype.render = function () {
+	        return (React.createElement("form", null,
+	            React.createElement("div", { className: "container" },
+	                React.createElement("div", { className: "form-group" },
+	                    React.createElement("label", { htmlFor: "username" }, "Username"),
+	                    React.createElement("input", { type: "text", className: "form-control", id: "username", name: "username", onChange: this.handleChange, value: this.state.username, placeholder: "Username" })),
+	                React.createElement("div", { className: "form-group" },
+	                    React.createElement("label", { htmlFor: "password" }, "Password"),
+	                    React.createElement("input", { type: "password", className: "form-control", id: "password", name: "password", onChange: this.handleChange, value: this.state.password, placeholder: "Password" })),
+	                React.createElement("button", { type: "submit", className: "btn btn-primary", onClick: this.handleSubmit }, "Log In"))));
+	    };
+	    return LoginFormComponent;
+	}(React.Component));
+	exports.LoginFormComponent = LoginFormComponent;
 	var mapDispatchToProps = function (dispatch) {
 	    return {
 	        onSubmitLogin: function (username, password) { dispatch(actions_1.beginLogin(username, password)); }
 	    };
 	};
-	exports.LoginFormContainer = react_redux_1.connect(null, mapDispatchToProps)(LoginForm_1.LoginForm);
+	exports.LoginForm = react_redux_1.connect(null, mapDispatchToProps)(LoginFormComponent);
 
 
 /***/ },
@@ -30060,81 +30226,11 @@
 	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 	};
 	var React = __webpack_require__(1);
-	var LoginForm = (function (_super) {
-	    __extends(LoginForm, _super);
-	    function LoginForm(props) {
-	        var _this = _super.call(this, props) || this;
-	        _this.handleChange = _this.handleChange.bind(_this);
-	        _this.handleSubmit = _this.handleSubmit.bind(_this);
-	        _this.state = {
-	            username: '',
-	            password: ''
-	        };
-	        return _this;
-	    }
-	    LoginForm.prototype.handleChange = function (event) {
-	        this.setState((_a = {},
-	            _a[event.target.name] = event.target.value,
-	            _a));
-	        var _a;
-	    };
-	    LoginForm.prototype.handleSubmit = function (event) {
-	        event.preventDefault();
-	        this.props.onSubmitLogin(this.state.username, this.state.password);
-	        this.setState({
-	            username: '',
-	            password: ''
-	        });
-	    };
-	    LoginForm.prototype.render = function () {
-	        return (React.createElement("form", null,
-	            React.createElement("div", { className: "container" },
-	                React.createElement("div", { className: "form-group" },
-	                    React.createElement("label", { htmlFor: "username" }, "Username"),
-	                    React.createElement("input", { type: "text", className: "form-control", id: "username", name: "username", onChange: this.handleChange, value: this.state.username, placeholder: "Username" })),
-	                React.createElement("div", { className: "form-group" },
-	                    React.createElement("label", { htmlFor: "password" }, "Password"),
-	                    React.createElement("input", { type: "password", className: "form-control", id: "password", name: "password", onChange: this.handleChange, value: this.state.password, placeholder: "Password" })),
-	                React.createElement("button", { type: "submit", className: "btn btn-primary", onClick: this.handleSubmit }, "Log In"))));
-	    };
-	    return LoginForm;
-	}(React.Component));
-	exports.LoginForm = LoginForm;
-
-
-/***/ },
-/* 283 */
-/***/ function(module, exports, __webpack_require__) {
-
-	"use strict";
 	var react_redux_1 = __webpack_require__(255);
-	var PollForm_1 = __webpack_require__(284);
 	var actions = __webpack_require__(271);
-	var mapStateToProps = function (state) {
-	    return {};
-	};
-	var mapDispatchToProps = function (dispatch) {
-	    return {
-	        submitForm: function (poll) { dispatch(actions.submitPollForm(poll)); }
-	    };
-	};
-	exports.PollFormContainer = react_redux_1.connect(mapStateToProps, mapDispatchToProps)(PollForm_1.PollForm);
-
-
-/***/ },
-/* 284 */
-/***/ function(module, exports, __webpack_require__) {
-
-	"use strict";
-	var __extends = (this && this.__extends) || function (d, b) {
-	    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
-	    function __() { this.constructor = d; }
-	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-	};
-	var React = __webpack_require__(1);
-	var PollForm = (function (_super) {
-	    __extends(PollForm, _super);
-	    function PollForm(props) {
+	var PollFormComponent = (function (_super) {
+	    __extends(PollFormComponent, _super);
+	    function PollFormComponent(props) {
 	        var _this = _super.call(this, props) || this;
 	        // Pre-bind methods
 	        _this.handleAddResponseField = _this.handleAddResponseField.bind(_this);
@@ -30153,7 +30249,7 @@
 	        };
 	        return _this;
 	    }
-	    PollForm.prototype.handleAddResponseField = function () {
+	    PollFormComponent.prototype.handleAddResponseField = function () {
 	        var newResponses = this.state.responses;
 	        newResponses.push('');
 	        this.setState({
@@ -30161,14 +30257,14 @@
 	            pollQuestion: this.state.pollQuestion
 	        });
 	    };
-	    PollForm.prototype.handleDeleteResponseField = function (index) {
+	    PollFormComponent.prototype.handleDeleteResponseField = function (index) {
 	        var newResponses = this.state.responses.filter(function (response, i) { return i !== index; });
 	        this.setState({
 	            responses: newResponses,
 	            pollQuestion: this.state.pollQuestion
 	        });
 	    };
-	    PollForm.prototype.handleChange = function (event) {
+	    PollFormComponent.prototype.handleChange = function (event) {
 	        var newPollQuestion = (event.target.name == "pollQuestion") ? event.target.value : this.state.pollQuestion;
 	        var newResponses = [];
 	        for (var i = 0; i < this.state.responses.length; i++) {
@@ -30179,20 +30275,28 @@
 	            responses: newResponses
 	        });
 	    };
-	    PollForm.prototype.handleSubmitForm = function (event) {
+	    PollFormComponent.prototype.handleSubmitForm = function (event) {
 	        event.preventDefault();
-	        this.props.submitForm(this.state);
-	        this.setState({
-	            pollQuestion: '',
-	            responses: [
-	                '',
-	                '',
-	                ''
-	            ]
+	        var poll = {
+	            token: window.localStorage.getItem('fcc-vote-app-api-key'),
+	            question: this.state.pollQuestion,
+	            responses: this.state.responses
+	        };
+	        poll.responses = poll.responses.filter(function (responseString) { return responseString.length >= 1; });
+	        poll.responses = poll.responses.map(function (responseString) {
+	            return {
+	                response: responseString,
+	                votes: []
+	            };
 	        });
+	        this.props.submitForm(poll);
 	    };
-	    PollForm.prototype.render = function () {
+	    PollFormComponent.prototype.render = function () {
 	        var _this = this;
+	        if (this.props.user == null) {
+	            return (React.createElement("div", null,
+	                React.createElement("h1", null, "Please login to add or edit forms")));
+	        }
 	        var responseFields = [];
 	        var _loop_1 = function (i) {
 	            var elementName = "responseField" + i;
@@ -30210,6 +30314,8 @@
 	        }
 	        return (React.createElement("div", { className: "container PollForm" },
 	            React.createElement("form", null,
+	                this.props.error &&
+	                    React.createElement("div", { className: "alert alert-danger", role: "alert" }, this.props.error),
 	                React.createElement("div", { className: "form-group" },
 	                    React.createElement("label", { htmlFor: "pollQuestion" }, "Question:"),
 	                    React.createElement("input", { type: "text", className: "form-control", id: "pollQuestion", name: "pollQuestion", value: this.state.pollQuestion, onChange: this.handleChange, placeholder: "Question" })),
@@ -30219,9 +30325,21 @@
 	                        React.createElement("button", { type: "submit", className: "btn btn-primary", onClick: this.handleSubmitForm }, "Submit/Save"),
 	                        React.createElement("button", { type: "button", className: "btn btn-default", onClick: this.handleAddResponseField }, "Add response field"))))));
 	    };
-	    return PollForm;
+	    return PollFormComponent;
 	}(React.Component));
-	exports.PollForm = PollForm;
+	exports.PollFormComponent = PollFormComponent;
+	var mapStateToProps = function (state) {
+	    return {
+	        user: state.user,
+	        error: state.pollForm.error
+	    };
+	};
+	var mapDispatchToProps = function (dispatch) {
+	    return {
+	        submitForm: function (poll) { dispatch(actions.submitPollForm(poll)); }
+	    };
+	};
+	exports.PollForm = react_redux_1.connect(mapStateToProps, mapDispatchToProps)(PollFormComponent);
 
 
 /***/ }

@@ -1,4 +1,6 @@
 import * as React from "react";
+import { connect } from "react-redux";
+import { beginLogin } from "../actions";
 
 interface LoginFormProps {
     onSubmitLogin: (username: string, password: string) => {}
@@ -9,7 +11,7 @@ interface LoginFormState {
     password?: string
 }
 
-export class LoginForm extends React.Component<LoginFormProps, LoginFormState> {
+export class LoginFormComponent extends React.Component<LoginFormProps, LoginFormState> {
 
     constructor(props: LoginFormProps) {
         super(props);
@@ -32,10 +34,6 @@ export class LoginForm extends React.Component<LoginFormProps, LoginFormState> {
     handleSubmit(event) {
         event.preventDefault();
         this.props.onSubmitLogin(this.state.username, this.state.password);
-        this.setState({
-            username: '',
-            password: ''
-        });
     }
 
     render() {
@@ -56,3 +54,11 @@ export class LoginForm extends React.Component<LoginFormProps, LoginFormState> {
         );
     }
 }
+
+const mapDispatchToProps = (dispatch) => {
+    return {
+        onSubmitLogin: (username: string, password: string) => { dispatch(beginLogin(username, password)); }
+    };
+};
+
+export const LoginForm = connect(null, mapDispatchToProps)(LoginFormComponent);
