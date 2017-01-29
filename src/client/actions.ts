@@ -20,16 +20,37 @@ export const BEGIN_RETRIEVE_POLLS = "BEGIN_RETRIEVE_POLLS";
 export const RETRIEVE_POLLS_SUCCESS = "RETRIEVE_POLLS_SUCCESS";
 export const RETRIEVE_POLLS_FAILURE = "RETRIEVE_POLLS_FAILURE";
 
-export function doApiCall(url: string, body: any) {   
-    let myInit = {
-        method: "POST",
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(body)
-    };
-    let myRequest = new Request(url, myInit);
-    return fetch(myRequest);
+export const BEGIN_RETRIEVE_POLL = "BEGIN_RETRIEVE_POLL";
+export const RETRIEVE_POLL_SUCCESS = "RETRIEVE_POLL_SUCCESS";
+export const RETRIEVE_POLL_FAILURE = "RETRIEVE_POLL_FAILURE";
+
+export function doApiPost(url: string, body: any) {
+    return new Promise(function (resolve, reject) {
+        $.ajax({
+            url: url,
+            method: "POST",
+            dataType: "json",
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            processData: false,
+            data: JSON.stringify(body),
+            success: (data: any, status: string) => { resolve(data) },
+            error: (xhr: any, status: any, error: any) => { reject(status) }
+        });
+    });
+}
+
+export function doApiGet(url: string) {
+    return new Promise(function (resolve, reject) {
+        $.ajax({
+            url: url,
+            method: "GET",
+            dataType: "json",
+            success: (json, status) => resolve(json),
+            error: error => reject(error)
+        });
+    });
 }
 
 export function submitPollForm(poll) {
@@ -40,30 +61,19 @@ export function submitPollForm(poll) {
         });
 
         // Do API call here
-        doApiCall('/api/polls', poll)
-        .then((response) => {
-            if (response.ok) {
-                response.json().then(json => {
-                    dispatch({
-                        type: SUBMIT_POLL_SUCCESS,
-                        message: json.message,
-                        pollId: json.pollId
-                    });
-                });
-            } else {
-                response.json().then(json => {
-                    dispatch({
-                        type: SUBMIT_POLL_FAILURE,
-                        error: json.error,
-                        message: "Error saving form: " + json.error
-                    });
-                });
-            }
+        doApiPost('/api/polls', poll)
+        .then((json: any) => {
+            dispatch({
+                type: SUBMIT_POLL_SUCCESS,
+                message: json.message,
+                pollId: json.pollId
+            });
         })
-        .catch((e) => {
+        .catch((json: any) => {
             dispatch({
                 type: SUBMIT_POLL_FAILURE,
-                message: "Error saving form!"
+                error: json.error,
+                message: "Error saving form: " + json.error
             });
         });
     };
@@ -78,32 +88,21 @@ export function beginRegister(userInfo) {
         });
 
         // Do API call here
-        doApiCall('/api/register', {
+        doApiPost('/api/register', {
                 username: userInfo.username,
                 email: userInfo.email,
                 password: userInfo.password
         })
         .then((response) => {
-            if (response.ok) {
-                response.json().then(json => {
-                    dispatch({
-                        type: REGISTER_USER_SUCCESS,
-                        message: "Registered user!"
-                    });
-                });
-            } else {
-                response.json().then(json => {
-                    dispatch({
-                        type: REGISTER_USER_FAILURE,
-                        message: "Error registering user: " + json.error
-                    });
-                });
-            }
+            dispatch({
+                type: REGISTER_USER_SUCCESS,
+                message: "Registered user!"
+            });
         })
-        .catch((e) => {
+        .catch((json: any) => {
             dispatch({
                 type: REGISTER_USER_FAILURE,
-                message: "Error registering user!"
+                message: "Error registering user: " + json.error
             });
         });
     };
@@ -117,33 +116,22 @@ export function beginLogin(username: string, password: string) {
         });
 
         // Do API call here
-        doApiCall('/api/login', {
+        doApiPost('/api/login', {
             username: username,
             password: password
         })
-        .then((response) => {
-            if (response.ok) {
-                response.json().then(json => {
-                    dispatch({
-                        type: LOGIN_SUCCESS,
-                        message: "Logged in!",
-                        apiToken: json.apiToken,
-                        user: username
-                    });
-                });
-            } else {
-                response.json().then(json => {
-                    dispatch({
-                        type: LOGIN_FAILURE,
-                        message: json.error
-                    });
-                });
-            }
+        .then((json: any) => {
+            dispatch({
+                type: LOGIN_SUCCESS,
+                message: "Logged in!",
+                apiToken: json.apiToken,
+                user: username
+            });
         })
-        .catch((e) => {
+        .catch((json) => {
             dispatch({
                 type: LOGIN_FAILURE,
-                message: "Error logging in!"
+                message: json.error
             });
         });      
     };
@@ -156,13 +144,53 @@ export function doLogout() {
     };
 }
 
-export function retrievePolls(polls: string[]) {
+export function retrievePoll(pollId: number) {
+    return function (dispatch) {
+        dispatch({
+            type: BEGIN_RETRIEVE_POLL,
+            message: "Attempting to retrieve poll #" + pollId
+        });
+
+        doApiGet('/api/polls/' + pollId)
+        .then(poll => {
+            console.log(poll);
+            dispatch({
+                type: RETRIEVE_POLL_SUCCESS,
+                message: "Retrieved poll #" + pollId,
+                poll: poll[0]
+            });
+        })
+        .catch(error => {
+            dispatch({
+                type: RETRIEVE_POLL_FAILURE,
+                message: "Unable to retrieve poll #" + pollId
+            });
+        });
+    };
+}
+
+export function retrievePolls() {
     return function (dispatch) {
         dispatch({
             type: BEGIN_RETRIEVE_POLLS,
             message: "Retrieving polls from server"
         });
+        
         // Do API call
+        doApiGet('/api/polls')
+        .then((response: any) => {
+            dispatch({
+                type: RETRIEVE_POLLS_SUCCESS,
+                message: "Retrieved all polls!",
+                polls: response
+            });
+        })
+        .catch((error: any) => {
+            dispatch({
+                type: RETRIEVE_POLLS_FAILURE,
+                message: "Unable to retrieve polls!"
+            });
+        });
     };
 }
 

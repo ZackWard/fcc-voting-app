@@ -54,9 +54,10 @@
 	var reducers_1 = __webpack_require__(270);
 	var VotingApp_1 = __webpack_require__(276);
 	var PollList_1 = __webpack_require__(278);
-	var RegisterUserForm_1 = __webpack_require__(280);
-	var LoginForm_1 = __webpack_require__(281);
-	var PollForm_1 = __webpack_require__(282);
+	var SinglePollView_1 = __webpack_require__(279);
+	var RegisterUserForm_1 = __webpack_require__(281);
+	var LoginForm_1 = __webpack_require__(282);
+	var PollForm_1 = __webpack_require__(283);
 	var store = redux_1.createStore(reducers_1.reducer, redux_1.applyMiddleware(redux_thunk_1.default));
 	ReactDOM.render(React.createElement(react_redux_1.Provider, { store: store },
 	    React.createElement(react_router_1.Router, { history: react_router_1.browserHistory },
@@ -65,7 +66,8 @@
 	            React.createElement(react_router_1.Route, { path: "/register", component: RegisterUserForm_1.RegisterUserForm }),
 	            React.createElement(react_router_1.Route, { path: "/polls/new", component: PollForm_1.PollForm }),
 	            React.createElement(react_router_1.Route, { path: "/polls/:pollId/edit", component: PollForm_1.PollForm }),
-	            React.createElement(react_router_1.Route, { path: "/polls/:pollId", component: PollList_1.PollList })))), document.getElementById('app'));
+	            React.createElement(react_router_1.Route, { path: "/polls/:pollId", component: SinglePollView_1.SinglePollView }),
+	            React.createElement(react_router_1.Route, { path: "/polls", component: PollList_1.PollList })))), document.getElementById('app'));
 
 
 /***/ },
@@ -28688,7 +28690,8 @@
 	    user: window.localStorage.getItem('fcc-vote-app-user') == null ? null : window.localStorage.getItem('fcc-vote-app-user'),
 	    pollForm: {
 	        error: null
-	    }
+	    },
+	    retrievedPolls: []
 	};
 	exports.reducer = function (state, action) {
 	    if (state === void 0) { state = initialState; }
@@ -28738,6 +28741,40 @@
 	            console.log(action.message);
 	            newState.pollForm.error = action.error;
 	            return newState;
+	        case actions.BEGIN_RETRIEVE_POLLS:
+	            console.log(action.message);
+	            return newState;
+	        case actions.RETRIEVE_POLLS_SUCCESS:
+	            console.log(action.message);
+	            console.log(action.polls);
+	            newState.retrievedPolls = action.polls;
+	            return newState;
+	        case actions.RETRIEVE_POLLS_FAILURE:
+	            console.log(action.message);
+	            return newState;
+	        case actions.BEGIN_RETRIEVE_POLL:
+	            console.log(action.message);
+	            return newState;
+	        case actions.RETRIEVE_POLL_SUCCESS:
+	            // We have a new poll, merge it into the retrievedPolls array
+	            var existingPoll = null;
+	            newState.retrievedPolls.forEach(function (poll, index) {
+	                if (poll.poll_id == action.poll.poll_id) {
+	                    existingPoll = index;
+	                }
+	            });
+	            if (existingPoll == null) {
+	                newState.retrievedPolls.push(action.poll);
+	            }
+	            else {
+	                console.log("Replacing existing poll in retrievedPolls with newly retrieved poll #" + action.poll.poll_id);
+	                newState.retrievedPolls[existingPoll] = action.poll;
+	            }
+	            console.log(action.message);
+	            return newState;
+	        case actions.RETRIEVE_POLL_FAILURE:
+	            console.log(action.message);
+	            return newState;
 	        default:
 	            return newState;
 	    }
@@ -28766,18 +28803,38 @@
 	exports.BEGIN_RETRIEVE_POLLS = "BEGIN_RETRIEVE_POLLS";
 	exports.RETRIEVE_POLLS_SUCCESS = "RETRIEVE_POLLS_SUCCESS";
 	exports.RETRIEVE_POLLS_FAILURE = "RETRIEVE_POLLS_FAILURE";
-	function doApiCall(url, body) {
-	    var myInit = {
-	        method: "POST",
-	        headers: {
-	            'Content-Type': 'application/json'
-	        },
-	        body: JSON.stringify(body)
-	    };
-	    var myRequest = new Request(url, myInit);
-	    return fetch(myRequest);
+	exports.BEGIN_RETRIEVE_POLL = "BEGIN_RETRIEVE_POLL";
+	exports.RETRIEVE_POLL_SUCCESS = "RETRIEVE_POLL_SUCCESS";
+	exports.RETRIEVE_POLL_FAILURE = "RETRIEVE_POLL_FAILURE";
+	function doApiPost(url, body) {
+	    return new Promise(function (resolve, reject) {
+	        $.ajax({
+	            url: url,
+	            method: "POST",
+	            dataType: "json",
+	            headers: {
+	                'Content-Type': 'application/json'
+	            },
+	            processData: false,
+	            data: JSON.stringify(body),
+	            success: function (data, status) { resolve(data); },
+	            error: function (xhr, status, error) { reject(status); }
+	        });
+	    });
 	}
-	exports.doApiCall = doApiCall;
+	exports.doApiPost = doApiPost;
+	function doApiGet(url) {
+	    return new Promise(function (resolve, reject) {
+	        $.ajax({
+	            url: url,
+	            method: "GET",
+	            dataType: "json",
+	            success: function (json, status) { return resolve(json); },
+	            error: function (error) { return reject(error); }
+	        });
+	    });
+	}
+	exports.doApiGet = doApiGet;
 	function submitPollForm(poll) {
 	    return function (dispatch) {
 	        dispatch({
@@ -28785,31 +28842,19 @@
 	            message: "Poll Form Submitted"
 	        });
 	        // Do API call here
-	        doApiCall('/api/polls', poll)
-	            .then(function (response) {
-	            if (response.ok) {
-	                response.json().then(function (json) {
-	                    dispatch({
-	                        type: exports.SUBMIT_POLL_SUCCESS,
-	                        message: json.message,
-	                        pollId: json.pollId
-	                    });
-	                });
-	            }
-	            else {
-	                response.json().then(function (json) {
-	                    dispatch({
-	                        type: exports.SUBMIT_POLL_FAILURE,
-	                        error: json.error,
-	                        message: "Error saving form: " + json.error
-	                    });
-	                });
-	            }
+	        doApiPost('/api/polls', poll)
+	            .then(function (json) {
+	            dispatch({
+	                type: exports.SUBMIT_POLL_SUCCESS,
+	                message: json.message,
+	                pollId: json.pollId
+	            });
 	        })
-	            .catch(function (e) {
+	            .catch(function (json) {
 	            dispatch({
 	                type: exports.SUBMIT_POLL_FAILURE,
-	                message: "Error saving form!"
+	                error: json.error,
+	                message: "Error saving form: " + json.error
 	            });
 	        });
 	    };
@@ -28823,33 +28868,21 @@
 	            message: "Trying to register user with username " + userInfo.username + " and email " + userInfo.email
 	        });
 	        // Do API call here
-	        doApiCall('/api/register', {
+	        doApiPost('/api/register', {
 	            username: userInfo.username,
 	            email: userInfo.email,
 	            password: userInfo.password
 	        })
 	            .then(function (response) {
-	            if (response.ok) {
-	                response.json().then(function (json) {
-	                    dispatch({
-	                        type: exports.REGISTER_USER_SUCCESS,
-	                        message: "Registered user!"
-	                    });
-	                });
-	            }
-	            else {
-	                response.json().then(function (json) {
-	                    dispatch({
-	                        type: exports.REGISTER_USER_FAILURE,
-	                        message: "Error registering user: " + json.error
-	                    });
-	                });
-	            }
+	            dispatch({
+	                type: exports.REGISTER_USER_SUCCESS,
+	                message: "Registered user!"
+	            });
 	        })
-	            .catch(function (e) {
+	            .catch(function (json) {
 	            dispatch({
 	                type: exports.REGISTER_USER_FAILURE,
-	                message: "Error registering user!"
+	                message: "Error registering user: " + json.error
 	            });
 	        });
 	    };
@@ -28862,34 +28895,22 @@
 	            message: "Begin Login"
 	        });
 	        // Do API call here
-	        doApiCall('/api/login', {
+	        doApiPost('/api/login', {
 	            username: username,
 	            password: password
 	        })
-	            .then(function (response) {
-	            if (response.ok) {
-	                response.json().then(function (json) {
-	                    dispatch({
-	                        type: exports.LOGIN_SUCCESS,
-	                        message: "Logged in!",
-	                        apiToken: json.apiToken,
-	                        user: username
-	                    });
-	                });
-	            }
-	            else {
-	                response.json().then(function (json) {
-	                    dispatch({
-	                        type: exports.LOGIN_FAILURE,
-	                        message: json.error
-	                    });
-	                });
-	            }
+	            .then(function (json) {
+	            dispatch({
+	                type: exports.LOGIN_SUCCESS,
+	                message: "Logged in!",
+	                apiToken: json.apiToken,
+	                user: username
+	            });
 	        })
-	            .catch(function (e) {
+	            .catch(function (json) {
 	            dispatch({
 	                type: exports.LOGIN_FAILURE,
-	                message: "Error logging in!"
+	                message: json.error
 	            });
 	        });
 	    };
@@ -28902,13 +28923,51 @@
 	    };
 	}
 	exports.doLogout = doLogout;
-	function retrievePolls(polls) {
+	function retrievePoll(pollId) {
+	    return function (dispatch) {
+	        dispatch({
+	            type: exports.BEGIN_RETRIEVE_POLL,
+	            message: "Attempting to retrieve poll #" + pollId
+	        });
+	        doApiGet('/api/polls/' + pollId)
+	            .then(function (poll) {
+	            console.log(poll);
+	            dispatch({
+	                type: exports.RETRIEVE_POLL_SUCCESS,
+	                message: "Retrieved poll #" + pollId,
+	                poll: poll[0]
+	            });
+	        })
+	            .catch(function (error) {
+	            dispatch({
+	                type: exports.RETRIEVE_POLL_FAILURE,
+	                message: "Unable to retrieve poll #" + pollId
+	            });
+	        });
+	    };
+	}
+	exports.retrievePoll = retrievePoll;
+	function retrievePolls() {
 	    return function (dispatch) {
 	        dispatch({
 	            type: exports.BEGIN_RETRIEVE_POLLS,
 	            message: "Retrieving polls from server"
 	        });
 	        // Do API call
+	        doApiGet('/api/polls')
+	            .then(function (response) {
+	            dispatch({
+	                type: exports.RETRIEVE_POLLS_SUCCESS,
+	                message: "Retrieved all polls!",
+	                polls: response
+	            });
+	        })
+	            .catch(function (error) {
+	            dispatch({
+	                type: exports.RETRIEVE_POLLS_FAILURE,
+	                message: "Unable to retrieve polls!"
+	            });
+	        });
 	    };
 	}
 	exports.retrievePolls = retrievePolls;
@@ -29891,13 +29950,14 @@
 	var React = __webpack_require__(1);
 	var react_redux_1 = __webpack_require__(255);
 	var Nav_1 = __webpack_require__(277);
+	var actions = __webpack_require__(271);
 	var VotingAppComponent = (function (_super) {
 	    __extends(VotingAppComponent, _super);
 	    function VotingAppComponent(props) {
-	        return _super.call(this, props) || this;
+	        var _this = _super.call(this, props) || this;
+	        props.retrievePolls();
+	        return _this;
 	    }
-	    VotingAppComponent.prototype.componentWillMount = function () {
-	    };
 	    VotingAppComponent.prototype.render = function () {
 	        return (React.createElement("div", null,
 	            React.createElement(Nav_1.Nav, null),
@@ -29910,7 +29970,11 @@
 	    return {};
 	};
 	var mapDispatchToProps = function (dispatch) {
-	    return {};
+	    return {
+	        retrievePolls: function () {
+	            dispatch(actions.retrievePolls());
+	        }
+	    };
 	};
 	exports.VotingApp = react_redux_1.connect(mapStateToProps, mapDispatchToProps)(VotingAppComponent);
 
@@ -29991,43 +30055,13 @@
 	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 	};
 	var React = __webpack_require__(1);
-	var Poll_1 = __webpack_require__(279);
 	var PollList = (function (_super) {
 	    __extends(PollList, _super);
 	    function PollList(props) {
-	        var _this = _super.call(this, props) || this;
-	        _this.state = {
-	            id: null,
-	            question: "Question",
-	            responses: []
-	        };
-	        var myInit = { method: "GET" };
-	        var myRequest = new Request('/api/polls/' + _this.props.params.pollId, myInit);
-	        fetch(myRequest)
-	            .then(function (response) {
-	            if (response.ok) {
-	                response.json().then(function (json) {
-	                    _this.setState({
-	                        id: json.poll_id,
-	                        question: json.question,
-	                        responses: json.responses.map(function (response) {
-	                            return {
-	                                response: response.response,
-	                                votes: response.votes.length
-	                            };
-	                        })
-	                    });
-	                });
-	            }
-	        })
-	            .catch(function (error) {
-	            console.log(error);
-	        });
-	        return _this;
+	        return _super.call(this, props) || this;
 	    }
 	    PollList.prototype.render = function () {
-	        return (React.createElement("div", { className: "container" },
-	            React.createElement(Poll_1.Poll, { id: this.state.id, question: this.state.question, responses: this.state.responses })));
+	        return (React.createElement("div", { className: "container" }));
 	    };
 	    return PollList;
 	}(React.Component));
@@ -30036,6 +30070,73 @@
 
 /***/ },
 /* 279 */
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+	var __extends = (this && this.__extends) || function (d, b) {
+	    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+	    function __() { this.constructor = d; }
+	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+	};
+	var React = __webpack_require__(1);
+	var react_redux_1 = __webpack_require__(255);
+	var Poll_1 = __webpack_require__(280);
+	var actions_1 = __webpack_require__(271);
+	var SinglePollViewComponent = (function (_super) {
+	    __extends(SinglePollViewComponent, _super);
+	    function SinglePollViewComponent(props) {
+	        var _this = _super.call(this, props) || this;
+	        _this.getDerivedState = _this.getDerivedState.bind(_this);
+	        _this.state = _this.getDerivedState(props);
+	        return _this;
+	    }
+	    SinglePollViewComponent.prototype.componentWillReceiveProps = function (nextProps) {
+	        this.setState(this.getDerivedState(nextProps));
+	    };
+	    SinglePollViewComponent.prototype.getDerivedState = function (props) {
+	        var singlePoll = {
+	            id: 0,
+	            question: "Poll not found",
+	            responses: [],
+	            retrieveAttempted: this.state == undefined ? false : this.state.retrieveAttempted
+	        };
+	        var found = false;
+	        for (var i = 0; i < props.polls.length; i++) {
+	            if (props.params.pollId == props.polls[i].poll_id) {
+	                found = true;
+	                singlePoll.id = props.polls[i].poll_id;
+	                singlePoll.question = props.polls[i].question;
+	                singlePoll.responses = props.polls[i].responses;
+	            }
+	        }
+	        if (!found && !singlePoll.retrieveAttempted) {
+	            // The poll that we're looking for isn't loaded. Try to load it from the server
+	            this.props.retrievePoll(props.params.pollId);
+	            singlePoll.retrieveAttempted = true;
+	        }
+	        return singlePoll;
+	    };
+	    SinglePollViewComponent.prototype.render = function () {
+	        return (React.createElement("div", { className: "container" },
+	            React.createElement(Poll_1.Poll, { id: this.props.params.pollId, question: this.state.question, responses: this.state.responses })));
+	    };
+	    return SinglePollViewComponent;
+	}(React.Component));
+	var mapStateToProps = function (state) {
+	    return {
+	        polls: state.retrievedPolls
+	    };
+	};
+	var mapDispatchToProps = function (dispatch) {
+	    return {
+	        retrievePoll: function (pollId) { dispatch(actions_1.retrievePoll(pollId)); }
+	    };
+	};
+	exports.SinglePollView = react_redux_1.connect(mapStateToProps, mapDispatchToProps)(SinglePollViewComponent);
+
+
+/***/ },
+/* 280 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
@@ -30069,7 +30170,7 @@
 
 
 /***/ },
-/* 280 */
+/* 281 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
@@ -30159,7 +30260,7 @@
 
 
 /***/ },
-/* 281 */
+/* 282 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
@@ -30216,7 +30317,7 @@
 
 
 /***/ },
-/* 282 */
+/* 283 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";

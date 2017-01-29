@@ -1,5 +1,6 @@
 "use strict";
 const mongodb = require("mongodb");
+// import { Poll } from "../client/interfaces";
 var bcrypt = require('bcrypt');
 const mongo = mongodb.MongoClient;
 const dbUrl = (process.env.VOTE_APP_ENV == 'test') ? 'mongodb://localhost:27017/fcc-voting-app-test' : 'mongodb://localhost:27017/fcc-voting-app';
@@ -107,6 +108,11 @@ function verifyPassword(username, password) {
     });
 }
 exports.verifyPassword = verifyPassword;
+/*
+ *
+ * Polls
+ *
+*/
 function addPoll(poll) {
     return new Promise(function (resolve, reject) {
         if (state.db == null) {
@@ -149,20 +155,27 @@ function getMaxId() {
         });
     });
 }
-function getPoll(poll_id) {
-    return new Promise(function (resolve, reject) {
-        if (state.db == null) {
-            return reject("Database not available.");
-        }
-        let query = {
-            poll_id: Number(poll_id)
-        };
-        state.db.collection('polls').findOne(query)
-            .then(doc => {
-            console.log(doc);
-            return resolve(doc);
-        })
-            .catch(e => reject(e));
-    });
+function getPoll(pollId) {
+    return getPolls({ query: { poll_id: Number(pollId) }, limit: 1 });
 }
 exports.getPoll = getPoll;
+function getPolls({ query = {}, sort = {}, projection = {}, limit = null, skip = 0 } = {}) {
+    return new Promise(function (resolve, reject) {
+        if (state.db == null) {
+            return reject("Database not available");
+        }
+        let cursor = state.db.collection('polls').find(query);
+        cursor.sort(sort);
+        cursor.skip(skip);
+        if (limit != null && typeof limit == "number" && limit > 0) {
+            cursor.limit(limit);
+        }
+        cursor.project(projection);
+        cursor.toArray().then(docs => resolve(docs)).catch(error => reject(error));
+    });
+}
+exports.getPolls = getPolls;
+function getRecentPolls() {
+    return getPolls({ sort: { addedAt: -1 }, projection: { "_id": 0 } });
+}
+exports.getRecentPolls = getRecentPolls;

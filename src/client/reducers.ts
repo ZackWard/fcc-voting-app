@@ -3,26 +3,20 @@ import * as actions from './actions';
 // Import react router history so that we can navigate programmatically.
 import { browserHistory } from "react-router";
 
-interface pollFormState {
-    error: string | null
-}
-
-interface appState {
-    user: string | null,
-    pollForm: pollFormState,
-    registerUserError?: string;
-}
+// Import our interfaces
+import { appState } from "./interfaces";
 
 const initialState: appState = {
     user: window.localStorage.getItem('fcc-vote-app-user') == null ? null : window.localStorage.getItem('fcc-vote-app-user'),
     pollForm: {
         error: null
-    }
+    },
+    retrievedPolls: []
 };
 
 export const reducer = (state = initialState, action) => {
     // Make a copy of state
-    let newState = JSON.parse(JSON.stringify(state));
+    let newState: appState = JSON.parse(JSON.stringify(state));
 
     switch (action.type) {
         case actions.BEGIN_LOGIN:
@@ -67,6 +61,39 @@ export const reducer = (state = initialState, action) => {
         case actions.SUBMIT_POLL_FAILURE:
             console.log(action.message);
             newState.pollForm.error = action.error;
+            return newState;
+        case actions.BEGIN_RETRIEVE_POLLS:
+            console.log(action.message);
+            return newState;
+        case actions.RETRIEVE_POLLS_SUCCESS:
+            console.log(action.message);
+            console.log(action.polls);
+            newState.retrievedPolls = action.polls;
+            return newState;
+        case actions.RETRIEVE_POLLS_FAILURE:
+            console.log(action.message);
+            return newState;
+        case actions.BEGIN_RETRIEVE_POLL:
+            console.log(action.message);
+            return newState;
+        case actions.RETRIEVE_POLL_SUCCESS:
+            // We have a new poll, merge it into the retrievedPolls array
+            var existingPoll: number | null = null;
+            newState.retrievedPolls.forEach((poll, index) => {
+                if (poll.poll_id == action.poll.poll_id) {
+                    existingPoll = index;
+                }
+            });
+            if (existingPoll == null) {
+                newState.retrievedPolls.push(action.poll);
+            } else {
+                console.log("Replacing existing poll in retrievedPolls with newly retrieved poll #" + action.poll.poll_id);
+                newState.retrievedPolls[existingPoll] = action.poll;
+            }
+            console.log(action.message);
+            return newState;
+        case actions.RETRIEVE_POLL_FAILURE:
+            console.log(action.message);
             return newState;
         default: 
             return newState;

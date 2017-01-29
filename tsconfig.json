@@ -4,10 +4,7 @@
         "target": "es5",
         "noImplicitAny": false,
         "sourceMap": false,
-        "jsx": "react",
-        "typeRoots": [
-            "./node_modules/@types"
-        ]
+        "jsx": "react"
     },
     "include": [
         "./src/client/**/*"

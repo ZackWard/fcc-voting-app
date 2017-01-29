@@ -5,12 +5,14 @@
         "noImplicitAny": false,
         "sourceMap": false,
         "outDir": "./",
-        "typeRoots": [
-            "./node_modules/@types"
+        "types": [
+            "node"
         ]
     },
-    "include": [
-        "src/server/**/*"
+    "files": [
+        "src/server/db.ts",
+        "src/server/api.ts",
+        "src/server/server.ts"
     ],
     "exclude": [
         "node_modules"

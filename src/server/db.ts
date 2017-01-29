@@ -1,4 +1,6 @@
 import * as mongodb from "mongodb";
+// import { Poll } from "../client/interfaces";
+
 var bcrypt = require('bcrypt');
 
 const mongo = mongodb.MongoClient;
@@ -119,26 +121,7 @@ export function verifyPassword(username: string, password: string) {
  * 
 */
 
-interface Vote {
-    username: String,
-    ipAddress: String
-}
-
-interface PollResponse {
-    response: String,
-    votes: Vote[]
-}
-
-interface Poll {
-    _id?: String,
-    poll_id?: Number,
-    addedAt: Date,
-    username: String,
-    question: String,
-    responses: PollResponse[]
-}
-
-export function addPoll(poll: Poll) {
+export function addPoll(poll) {
     return new Promise(function (resolve, reject) {
         if (state.db == null) {
             return reject("Database not available.");
@@ -181,30 +164,26 @@ function getMaxId() {
     });
 }
 
-export function getPoll(poll_id: number) {
-    return new Promise(function (resolve, reject) {
-        if (state.db == null) {
-            return reject("Database not available.");
-        }
-        let query = {
-            poll_id: Number(poll_id)
-        };
-        state.db.collection('polls').findOne(query)
-        .then(doc => {
-            console.log(doc);
-            return resolve(doc);
-        })
-        .catch(e => reject(e));
-    });
+export function getPoll(pollId: number) {
+    return getPolls({ query: {poll_id: Number(pollId)}, limit: 1});
 }
 
-export function getRecentPolls() {
+export function getPolls({query = {}, sort = {}, projection = {}, limit = null, skip = 0} = {}) {
     return new Promise(function (resolve, reject) {
         if (state.db == null) {
             return reject("Database not available");
         }
-        state.db.collection('polls').find({}).sort({addedAt: -1}).toArray()
-        .then(docs => resolve(docs))
-        .catch(error => reject(error));
+        let cursor = state.db.collection('polls').find(query);
+        cursor.sort(sort);
+        cursor.skip(skip);
+        if (limit != null && typeof limit == "number" && limit > 0) {
+            cursor.limit(limit);
+        }
+        cursor.project(projection);
+        cursor.toArray().then(docs => resolve(docs)).catch(error => reject(error));
     });
+}
+
+export function getRecentPolls() {
+    return getPolls({sort: {addedAt: -1}, projection: {"_id": 0} });
 }
