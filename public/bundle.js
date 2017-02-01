@@ -55,9 +55,9 @@
 	var VotingApp_1 = __webpack_require__(276);
 	var PollList_1 = __webpack_require__(278);
 	var SinglePollView_1 = __webpack_require__(279);
-	var RegisterUserForm_1 = __webpack_require__(281);
-	var LoginForm_1 = __webpack_require__(282);
-	var PollForm_1 = __webpack_require__(283);
+	var RegisterUserForm_1 = __webpack_require__(282);
+	var LoginForm_1 = __webpack_require__(283);
+	var PollForm_1 = __webpack_require__(284);
 	var store = redux_1.createStore(reducers_1.reducer, redux_1.applyMiddleware(redux_thunk_1.default));
 	ReactDOM.render(React.createElement(react_redux_1.Provider, { store: store },
 	    React.createElement(react_router_1.Router, { history: react_router_1.browserHistory },
@@ -28691,6 +28691,7 @@
 	    pollForm: {
 	        error: null
 	    },
+	    loading: false,
 	    retrievedPolls: []
 	};
 	exports.reducer = function (state, action) {
@@ -28742,20 +28743,25 @@
 	            newState.pollForm.error = action.error;
 	            return newState;
 	        case actions.BEGIN_RETRIEVE_POLLS:
+	            newState.loading = true;
 	            console.log(action.message);
 	            return newState;
 	        case actions.RETRIEVE_POLLS_SUCCESS:
+	            newState.loading = false;
 	            console.log(action.message);
 	            console.log(action.polls);
 	            newState.retrievedPolls = action.polls;
 	            return newState;
 	        case actions.RETRIEVE_POLLS_FAILURE:
+	            newState.loading = false;
 	            console.log(action.message);
 	            return newState;
 	        case actions.BEGIN_RETRIEVE_POLL:
+	            newState.loading = true;
 	            console.log(action.message);
 	            return newState;
 	        case actions.RETRIEVE_POLL_SUCCESS:
+	            newState.loading = false;
 	            // We have a new poll, merge it into the retrievedPolls array
 	            var existingPoll = null;
 	            newState.retrievedPolls.forEach(function (poll, index) {
@@ -28773,9 +28779,13 @@
 	            console.log(action.message);
 	            return newState;
 	        case actions.RETRIEVE_POLL_FAILURE:
+	            newState.loading = false;
 	            console.log(action.message);
 	            return newState;
 	        default:
+	            console.log("In reducer, default action:");
+	            console.log("Action: " + action.type);
+	            console.log("Message: " + action.message);
 	            return newState;
 	    }
 	};
@@ -28806,6 +28816,9 @@
 	exports.BEGIN_RETRIEVE_POLL = "BEGIN_RETRIEVE_POLL";
 	exports.RETRIEVE_POLL_SUCCESS = "RETRIEVE_POLL_SUCCESS";
 	exports.RETRIEVE_POLL_FAILURE = "RETRIEVE_POLL_FAILURE";
+	exports.BEGIN_CAST_VOTE = "BEGIN_CAST_VOTE";
+	exports.CAST_VOTE_SUCCESS = "CAST_VOTE_SUCCESS";
+	exports.CAST_VOTE_FAILURE = "CAST_VOTE_FAILURE";
 	function doApiPost(url, body) {
 	    return new Promise(function (resolve, reject) {
 	        $.ajax({
@@ -28818,7 +28831,7 @@
 	            processData: false,
 	            data: JSON.stringify(body),
 	            success: function (data, status) { resolve(data); },
-	            error: function (xhr, status, error) { reject(status); }
+	            error: function (xhr, status, error) { reject(xhr.responseJSON); }
 	        });
 	    });
 	}
@@ -28971,6 +28984,31 @@
 	    };
 	}
 	exports.retrievePolls = retrievePolls;
+	function castVote(poll, response) {
+	    return function (dispatch) {
+	        dispatch({
+	            type: exports.BEGIN_CAST_VOTE,
+	            message: "Casting vote for response #" + response + " on poll #" + poll
+	        });
+	        // Do API call
+	        var apiUrl = "/api/polls/" + Number(poll) + "/vote";
+	        var thisUser = window.localStorage.getItem('fcc-vote-app-user');
+	        doApiPost(apiUrl, { response: Number(response), user: thisUser })
+	            .then(function (serverResponse) {
+	            dispatch({
+	                type: exports.CAST_VOTE_SUCCESS,
+	                message: "You cast a vote for response #" + response + " on Poll #" + poll
+	            });
+	        })
+	            .catch(function (error) {
+	            dispatch({
+	                type: exports.CAST_VOTE_FAILURE,
+	                message: error.error
+	            });
+	        });
+	    };
+	}
+	exports.castVote = castVote;
 	function tokenExpired() {
 	    return {
 	        type: exports.LOGIN_TOKEN_EXPIRED,
@@ -30061,7 +30099,8 @@
 	        return _super.call(this, props) || this;
 	    }
 	    PollList.prototype.render = function () {
-	        return (React.createElement("div", { className: "container" }));
+	        return (React.createElement("div", { className: "container" },
+	            React.createElement("h1", null, "All Polls")));
 	    };
 	    return PollList;
 	}(React.Component));
@@ -30096,7 +30135,7 @@
 	    SinglePollViewComponent.prototype.getDerivedState = function (props) {
 	        var singlePoll = {
 	            id: 0,
-	            question: "Poll not found",
+	            question: props.loading ? "Loading..." : "Poll not found",
 	            responses: [],
 	            retrieveAttempted: this.state == undefined ? false : this.state.retrieveAttempted
 	        };
@@ -30109,7 +30148,7 @@
 	                singlePoll.responses = props.polls[i].responses;
 	            }
 	        }
-	        if (!found && !singlePoll.retrieveAttempted) {
+	        if (!found && !props.loading && !singlePoll.retrieveAttempted) {
 	            // The poll that we're looking for isn't loaded. Try to load it from the server
 	            this.props.retrievePoll(props.params.pollId);
 	            singlePoll.retrieveAttempted = true;
@@ -30118,18 +30157,20 @@
 	    };
 	    SinglePollViewComponent.prototype.render = function () {
 	        return (React.createElement("div", { className: "container" },
-	            React.createElement(Poll_1.Poll, { id: this.props.params.pollId, question: this.state.question, responses: this.state.responses })));
+	            React.createElement(Poll_1.Poll, { id: this.props.params.pollId, question: this.state.question, responses: this.state.responses, voteHandler: this.props.castVote })));
 	    };
 	    return SinglePollViewComponent;
 	}(React.Component));
 	var mapStateToProps = function (state) {
 	    return {
-	        polls: state.retrievedPolls
+	        polls: state.retrievedPolls,
+	        loading: state.loading
 	    };
 	};
 	var mapDispatchToProps = function (dispatch) {
 	    return {
-	        retrievePoll: function (pollId) { dispatch(actions_1.retrievePoll(pollId)); }
+	        retrievePoll: function (pollId) { dispatch(actions_1.retrievePoll(pollId)); },
+	        castVote: function (poll, response) { dispatch(actions_1.castVote(poll, response)); }
 	    };
 	};
 	exports.SinglePollView = react_redux_1.connect(mapStateToProps, mapDispatchToProps)(SinglePollViewComponent);
@@ -30146,22 +30187,24 @@
 	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 	};
 	var React = __webpack_require__(1);
+	var VoteLink_1 = __webpack_require__(281);
 	var Poll = (function (_super) {
 	    __extends(Poll, _super);
 	    function Poll(props) {
 	        return _super.call(this, props) || this;
 	    }
 	    Poll.prototype.render = function () {
+	        var _this = this;
 	        return (React.createElement("div", { className: "panel panel-default" },
 	            React.createElement("div", { className: "panel-heading" },
 	                React.createElement("h3", { className: "panel-title" }, this.props.question)),
 	            React.createElement("div", { className: "panel-body" },
 	                React.createElement("ul", null, this.props.responses.map(function (response, index) {
 	                    return (React.createElement("li", { key: index },
-	                        response.response,
-	                        " (",
-	                        response.votes,
-	                        ")"));
+	                        React.createElement(VoteLink_1.VoteLink, { pollId: _this.props.id, responseId: index, clickHandler: _this.props.voteHandler },
+	                            response.response,
+	                            " - Votes: ",
+	                            response.votes)));
 	                })))));
 	    };
 	    return Poll;
@@ -30171,6 +30214,21 @@
 
 /***/ },
 /* 281 */
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+	var React = __webpack_require__(1);
+	exports.VoteLink = function (props) {
+	    var thisClickHandler = function (event) {
+	        event.preventDefault();
+	        props.clickHandler(props.pollId, props.responseId);
+	    };
+	    return (React.createElement("a", { href: "#", onClick: thisClickHandler }, props.children));
+	};
+
+
+/***/ },
+/* 282 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
@@ -30260,7 +30318,7 @@
 
 
 /***/ },
-/* 282 */
+/* 283 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
@@ -30317,7 +30375,7 @@
 
 
 /***/ },
-/* 283 */
+/* 284 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";

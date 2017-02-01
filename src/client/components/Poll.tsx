@@ -1,5 +1,7 @@
 import * as React from "react";
 
+import { VoteLink } from "./VoteLink";
+
 interface PollResponse {
     response: string,
     votes: number
@@ -8,7 +10,8 @@ interface PollResponse {
 interface PollProps {
     id: number,
     question: String,
-    responses: PollResponse[]
+    responses: PollResponse[],
+    voteHandler: (poll: number, response: number) => any
 }
 
 interface PollState {
@@ -32,7 +35,11 @@ export class Poll extends React.Component<PollProps, PollState> {
                         {
                             this.props.responses.map((response, index) => {
                                 return (
-                                    <li key={index}>{response.response} ({response.votes})</li>
+                                    <li key={index}>
+                                        <VoteLink pollId={this.props.id} responseId={index} clickHandler={this.props.voteHandler}>
+                                            {response.response} - Votes: {response.votes}
+                                        </VoteLink>
+                                    </li>
                                 );
                             })
                         }

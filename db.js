@@ -1,6 +1,6 @@
 "use strict";
 const mongodb = require("mongodb");
-// import { Poll } from "../client/interfaces";
+const validator = require("validator");
 var bcrypt = require('bcrypt');
 const mongo = mongodb.MongoClient;
 const dbUrl = (process.env.VOTE_APP_ENV == 'test') ? 'mongodb://localhost:27017/fcc-voting-app-test' : 'mongodb://localhost:27017/fcc-voting-app';
@@ -179,3 +179,65 @@ function getRecentPolls() {
     return getPolls({ sort: { addedAt: -1 }, projection: { "_id": 0 } });
 }
 exports.getRecentPolls = getRecentPolls;
+function hasAlreadyVoted(poll, user, ip) {
+    return new Promise(function (resolve, reject) {
+        if (!validator.isIP(ip)) {
+            return reject("Invalid IP Address");
+        }
+        if (user == null && ip == null) {
+            return reject("You must provide either a username or an IP Address, or both.");
+        }
+        state.db.collection('polls').findOne({ poll_id: Number(poll) })
+            .then(doc => {
+            if (doc == null) {
+                return reject("Poll not found");
+            }
+            console.log(doc);
+            let alreadyVoted = false;
+            for (let i = 0; i < doc.responses.length; i++) {
+                for (let j = 0; j < doc.responses[i].votes.length; j++) {
+                    console.log("Comparing " + ip + " to " + doc.responses[i].votes[j].ipAddress);
+                    console.log("Comparing " + user + " to " + doc.responses[i].votes[j].username);
+                    if ((ip != null && doc.responses[i].votes[j].ipAddress == ip) || (user != null && doc.responses[i].votes[j].username == user)) {
+                        alreadyVoted = true;
+                    }
+                }
+            }
+            resolve(alreadyVoted);
+        })
+            .catch(error => reject(error));
+    });
+}
+function castVote(poll, response, user, ip) {
+    user = user == undefined ? null : user;
+    ip = ip == undefined ? null : ip;
+    return new Promise(function (resolve, reject) {
+        if (state.db == null) {
+            return reject("Database not available");
+        }
+        hasAlreadyVoted(poll, user, ip)
+            .then(voted => {
+            if (voted) {
+                console.log("Duplicate vote detected!");
+                return reject("User or IP Address has already voted on this poll");
+            }
+            let updateOperator = {
+                "$push": {}
+            };
+            updateOperator["$push"]["responses." + response + ".votes"] = {
+                username: user,
+                ipAddress: ip
+            };
+            console.log("Update:");
+            console.log(updateOperator);
+            state.db.collection('polls').updateOne({ poll_id: Number(poll) }, updateOperator, {}, function (err, result) {
+                if (err) {
+                    return reject(err);
+                }
+                resolve("Matched " + result.matchedCount + " records and modified " + result.modifiedCount + " records.");
+            });
+        })
+            .catch(error => reject(error));
+    });
+}
+exports.castVote = castVote;

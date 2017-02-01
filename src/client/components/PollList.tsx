@@ -2,9 +2,7 @@ import * as React from "react";
 import { Poll } from "../components/Poll";
 
 interface PollListProps {
-    params: {
-        pollId: number
-    }
+    
 }
 
 interface PollResponse {
@@ -27,7 +25,7 @@ export class PollList extends React.Component<PollListProps, PollListState> {
     render() {
         return (
             <div className="container">
-                
+                <h1>All Polls</h1>
             </div>
         );
     }

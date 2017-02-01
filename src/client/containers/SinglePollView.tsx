@@ -1,14 +1,16 @@
 import * as React from "react";
 import { connect } from "react-redux";
 import { Poll } from "../components/Poll";
-import { retrievePoll } from "../actions";
+import { retrievePoll, castVote } from "../actions";
 
 interface SinglePollViewProps {
     params: {
         pollId: number
     }
     polls: any[],
-    retrievePoll: (pollId: number) => any
+    loading: boolean,
+    retrievePoll: (pollId: number) => any,
+    castVote: (poll: number, response: number) => any
 }
 
 interface SinglePollViewState {
@@ -33,7 +35,7 @@ class SinglePollViewComponent extends React.Component<SinglePollViewProps, Singl
     getDerivedState(props: SinglePollViewProps): SinglePollViewState {
         var singlePoll: SinglePollViewState = {
             id: 0,
-            question: "Poll not found",
+            question: props.loading ? "Loading..." : "Poll not found",
             responses: [],
             retrieveAttempted: this.state == undefined ? false : this.state.retrieveAttempted
         };
@@ -49,7 +51,7 @@ class SinglePollViewComponent extends React.Component<SinglePollViewProps, Singl
             }
         }
 
-        if ( ! found && ! singlePoll.retrieveAttempted) {
+        if ( ! found && ! props.loading && ! singlePoll.retrieveAttempted) {
             // The poll that we're looking for isn't loaded. Try to load it from the server
             this.props.retrievePoll(props.params.pollId);
             singlePoll.retrieveAttempted = true;
@@ -61,7 +63,7 @@ class SinglePollViewComponent extends React.Component<SinglePollViewProps, Singl
     render() {
         return (
             <div className="container">
-                <Poll id={this.props.params.pollId} question={this.state.question} responses={this.state.responses}></Poll>
+                <Poll id={this.props.params.pollId} question={this.state.question} responses={this.state.responses} voteHandler={this.props.castVote}></Poll>
             </div>
         );
     }
@@ -69,13 +71,15 @@ class SinglePollViewComponent extends React.Component<SinglePollViewProps, Singl
 
 const mapStateToProps = state => {
     return {
-        polls: state.retrievedPolls
+        polls: state.retrievedPolls,
+        loading: state.loading
     };
 };
 
 const mapDispatchToProps = dispatch => {
     return {
-        retrievePoll: (pollId: number) => { dispatch(retrievePoll(pollId)) }
+        retrievePoll: (pollId: number) => { dispatch(retrievePoll(pollId)) },
+        castVote: (poll: number, response: number) => { dispatch(castVote(poll, response)) }
     };
 };
 

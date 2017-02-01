@@ -24,6 +24,10 @@ export const BEGIN_RETRIEVE_POLL = "BEGIN_RETRIEVE_POLL";
 export const RETRIEVE_POLL_SUCCESS = "RETRIEVE_POLL_SUCCESS";
 export const RETRIEVE_POLL_FAILURE = "RETRIEVE_POLL_FAILURE";
 
+export const BEGIN_CAST_VOTE = "BEGIN_CAST_VOTE";
+export const CAST_VOTE_SUCCESS = "CAST_VOTE_SUCCESS";
+export const CAST_VOTE_FAILURE = "CAST_VOTE_FAILURE";
+
 export function doApiPost(url: string, body: any) {
     return new Promise(function (resolve, reject) {
         $.ajax({
@@ -36,7 +40,7 @@ export function doApiPost(url: string, body: any) {
             processData: false,
             data: JSON.stringify(body),
             success: (data: any, status: string) => { resolve(data) },
-            error: (xhr: any, status: any, error: any) => { reject(status) }
+            error: (xhr: any, status: any, error: any) => { reject(xhr.responseJSON) }
         });
     });
 }
@@ -189,6 +193,32 @@ export function retrievePolls() {
             dispatch({
                 type: RETRIEVE_POLLS_FAILURE,
                 message: "Unable to retrieve polls!"
+            });
+        });
+    };
+}
+
+export function castVote(poll: number, response: number) {
+    return function (dispatch) {
+        dispatch({
+            type: BEGIN_CAST_VOTE,
+            message: "Casting vote for response #" + response + " on poll #" + poll
+        });
+
+        // Do API call
+        let apiUrl = "/api/polls/" + Number(poll) + "/vote";
+        let thisUser = window.localStorage.getItem('fcc-vote-app-user');
+        doApiPost(apiUrl, {response: Number(response), user: thisUser})
+        .then(serverResponse => {
+            dispatch({
+                type: CAST_VOTE_SUCCESS,
+                message: "You cast a vote for response #" + response + " on Poll #" + poll
+            });
+        })
+        .catch(error => {
+            dispatch({
+                type: CAST_VOTE_FAILURE,
+                message: error.error
             });
         });
     };

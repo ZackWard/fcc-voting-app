@@ -11,6 +11,7 @@ const initialState: appState = {
     pollForm: {
         error: null
     },
+    loading: false,
     retrievedPolls: []
 };
 
@@ -63,20 +64,25 @@ export const reducer = (state = initialState, action) => {
             newState.pollForm.error = action.error;
             return newState;
         case actions.BEGIN_RETRIEVE_POLLS:
+            newState.loading = true;
             console.log(action.message);
             return newState;
         case actions.RETRIEVE_POLLS_SUCCESS:
+            newState.loading = false;
             console.log(action.message);
             console.log(action.polls);
             newState.retrievedPolls = action.polls;
             return newState;
         case actions.RETRIEVE_POLLS_FAILURE:
+            newState.loading = false;
             console.log(action.message);
             return newState;
         case actions.BEGIN_RETRIEVE_POLL:
+            newState.loading = true;
             console.log(action.message);
             return newState;
         case actions.RETRIEVE_POLL_SUCCESS:
+            newState.loading = false;
             // We have a new poll, merge it into the retrievedPolls array
             var existingPoll: number | null = null;
             newState.retrievedPolls.forEach((poll, index) => {
@@ -93,9 +99,13 @@ export const reducer = (state = initialState, action) => {
             console.log(action.message);
             return newState;
         case actions.RETRIEVE_POLL_FAILURE:
+            newState.loading = false;
             console.log(action.message);
             return newState;
         default: 
+            console.log("In reducer, default action:");
+            console.log("Action: " + action.type);
+            console.log("Message: " + action.message);
             return newState;
     }
 };

@@ -10,6 +10,25 @@ exports.router = express.Router();
 const jsonParser = bodyParser.json();
 exports.router.use(jsonParser);
 exports.router.use(mongoSanitize());
+const authenticateUser = (req, res, next) => {
+    // Check for a valid token
+    jwt.verify(req.body.token, process.env.VOTE_APP_JWT_SECRET, function (err, payload) {
+        if (err) {
+            // Error, invalid token
+            console.log("Invalid Token");
+            res.status(401).json({
+                error: "Not authorized"
+            });
+        }
+        else {
+            // Return a success message
+            console.log("In authentication middleware");
+            console.log("Valid Token for " + payload.user);
+            req.APIAuthenticatedUser = payload.user;
+            next();
+        }
+    });
+};
 exports.router.post('/register', function (req, res) {
     let username = req.body.username;
     let email = req.body.email;
@@ -34,7 +53,7 @@ exports.router.get('/polls', function (req, res) {
     })
         .catch(error => res.status(500).json({ error: "Error retrieving polls" }));
 });
-exports.router.post('/polls', function (req, res) {
+exports.router.post('/polls', authenticateUser, function (req, res) {
     console.log(req.body);
     // TODO Validate poll. There should be, at a minimum, 1 question and 2 responses.
     if (req.body.question.length < 1 || req.body.responses.length < 2) {
@@ -42,33 +61,19 @@ exports.router.post('/polls', function (req, res) {
             error: "Invalid input. A poll must have at least one question and at least two responses."
         });
     }
-    // Check for a valid token
-    jwt.verify(req.body.token, process.env.VOTE_APP_JWT_SECRET, function (err, payload) {
-        if (err) {
-            // Error, invalid token
-            console.log("Invalid Token");
-            res.status(401).json({
-                error: "Not authorized"
-            });
-        }
-        else {
-            // Return a success message
-            console.log("Valid Token for " + payload.user);
-            db.addPoll({
-                question: req.body.question,
-                responses: req.body.responses,
-                username: payload.user,
-                addedAt: new Date()
-            })
-                .then(poll => {
-                res.json({
-                    message: "Post added! Yippee!",
-                    pollId: poll["_id"]
-                });
-            })
-                .catch(error => { res.status(500).json({ error: "Server Error" }); });
-        }
-    });
+    db.addPoll({
+        question: req.body.question,
+        responses: req.body.responses,
+        username: req.APIAuthenticatedUser,
+        addedAt: new Date()
+    })
+        .then(poll => {
+        res.json({
+            message: "Post added! Yippee!",
+            pollId: poll["_id"]
+        });
+    })
+        .catch(error => { res.status(500).json({ error: "Server Error" }); });
 });
 exports.router.get('/polls/:poll_id', function (req, res) {
     db.getPoll(req.params.poll_id)
@@ -85,6 +90,22 @@ exports.router.get('/polls/:poll_id', function (req, res) {
         .catch(error => res.status(500).json({
         error: "Error getting poll"
     }));
+});
+exports.router.post('/polls/:poll_id/vote', function (req, res) {
+    console.log("Casting vote for response #" + req.body.response + " on poll #" + req.params.poll_id);
+    console.log("Request from: " + req.ip);
+    db.castVote(Number(req.params.poll_id), Number(req.body.response), req.body.user, req.ip)
+        .then(result => {
+        res.json({
+            message: result
+        });
+    })
+        .catch(error => {
+        console.log(error);
+        res.status(500).json({
+            message: error
+        });
+    });
 });
 exports.router.post('/login', function (req, res) {
     const username = req.body.username;

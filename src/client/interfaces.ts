@@ -23,6 +23,7 @@ export interface pollFormState {
 
 export interface appState {
     user: string | null,
+    loading: boolean,
     pollForm: pollFormState,
     retrievedPolls: Poll[],
     registerUserError?: string;
