@@ -156,10 +156,10 @@ function getMaxId() {
     });
 }
 function getPoll(pollId) {
-    return getPolls({ query: { poll_id: Number(pollId) }, limit: 1 });
+    return getPolls({ query: { poll_id: Number(pollId) }, projection: { "_id": 0 }, limit: 1 });
 }
 exports.getPoll = getPoll;
-function getPolls({ query = {}, sort = {}, projection = {}, limit = null, skip = 0 } = {}) {
+function getPolls({ query = {}, sort = {}, projection = {}, limit = null, skip = 0, ip = false, user = false } = {}) {
     return new Promise(function (resolve, reject) {
         if (state.db == null) {
             return reject("Database not available");
@@ -171,12 +171,37 @@ function getPolls({ query = {}, sort = {}, projection = {}, limit = null, skip =
             cursor.limit(limit);
         }
         cursor.project(projection);
-        cursor.toArray().then(docs => resolve(docs)).catch(error => reject(error));
+        cursor.toArray()
+            .then(docs => {
+            let summarizedPolls = summarizePolls(docs, user, ip);
+            return resolve(summarizedPolls);
+        })
+            .catch(error => reject(error));
     });
 }
 exports.getPolls = getPolls;
-function getRecentPolls() {
-    return getPolls({ sort: { addedAt: -1 }, projection: { "_id": 0 } });
+function summarizePoll(poll, user, ip) {
+    let userHasVoted = false;
+    poll.responses = poll.responses.map(response => {
+        // Check to see if any of the votes match our user/IP
+        response.votes.forEach(vote => {
+            if ((user != false && user == vote.username) || (ip != false && ip == vote.ipAddress)) {
+                userHasVoted = true;
+            }
+        });
+        return {
+            response: response.response,
+            votes: response.votes.length
+        };
+    });
+    poll.hasVoted = userHasVoted;
+    return poll;
+}
+function summarizePolls(polls, user, ip) {
+    return polls.map(poll => summarizePoll(poll, user, ip));
+}
+function getRecentPolls(user, ip) {
+    return getPolls({ sort: { addedAt: -1 }, projection: { "_id": 0 }, user: user, ip: ip });
 }
 exports.getRecentPolls = getRecentPolls;
 function hasAlreadyVoted(poll, user, ip) {
@@ -184,7 +209,7 @@ function hasAlreadyVoted(poll, user, ip) {
         if (!validator.isIP(ip)) {
             return reject("Invalid IP Address");
         }
-        if (user == null && ip == null) {
+        if (user == false && ip == false) {
             return reject("You must provide either a username or an IP Address, or both.");
         }
         state.db.collection('polls').findOne({ poll_id: Number(poll) })
@@ -192,13 +217,10 @@ function hasAlreadyVoted(poll, user, ip) {
             if (doc == null) {
                 return reject("Poll not found");
             }
-            console.log(doc);
             let alreadyVoted = false;
             for (let i = 0; i < doc.responses.length; i++) {
                 for (let j = 0; j < doc.responses[i].votes.length; j++) {
-                    console.log("Comparing " + ip + " to " + doc.responses[i].votes[j].ipAddress);
-                    console.log("Comparing " + user + " to " + doc.responses[i].votes[j].username);
-                    if ((ip != null && doc.responses[i].votes[j].ipAddress == ip) || (user != null && doc.responses[i].votes[j].username == user)) {
+                    if ((ip != false && doc.responses[i].votes[j].ipAddress == ip) || (user != false && doc.responses[i].votes[j].username == user)) {
                         alreadyVoted = true;
                     }
                 }
@@ -209,8 +231,13 @@ function hasAlreadyVoted(poll, user, ip) {
     });
 }
 function castVote(poll, response, user, ip) {
-    user = user == undefined ? null : user;
-    ip = ip == undefined ? null : ip;
+    user = user == undefined ? false : user;
+    ip = ip == undefined ? false : ip;
+    // TODO: Remove this debug feature
+    // Generate a random IP address so that we can test voting
+    const getRandomIpSegment = () => Math.floor(Math.random() * 254) + 1;
+    ip = getRandomIpSegment() + "." + getRandomIpSegment() + "." + getRandomIpSegment() + "." + getRandomIpSegment();
+    console.log("DEBUG: Generated fake IP: " + ip);
     return new Promise(function (resolve, reject) {
         if (state.db == null) {
             return reject("Database not available");
@@ -224,17 +251,26 @@ function castVote(poll, response, user, ip) {
             let updateOperator = {
                 "$push": {}
             };
-            updateOperator["$push"]["responses." + response + ".votes"] = {
-                username: user,
-                ipAddress: ip
-            };
+            let vote = {};
+            if (user) {
+                vote.username = user;
+            }
+            if (ip) {
+                vote.ipAddress = ip;
+            }
+            updateOperator["$push"]["responses." + response + ".votes"] = vote;
             console.log("Update:");
             console.log(updateOperator);
             state.db.collection('polls').updateOne({ poll_id: Number(poll) }, updateOperator, {}, function (err, result) {
                 if (err) {
                     return reject(err);
                 }
-                resolve("Matched " + result.matchedCount + " records and modified " + result.modifiedCount + " records.");
+                state.db.collection('polls').findOne({ poll_id: Number(poll) }, { fields: { "_id": 0 } }, function (err, result) {
+                    if (err) {
+                        return reject(err);
+                    }
+                    resolve(summarizePoll(result, user, ip));
+                });
             });
         })
             .catch(error => reject(error));

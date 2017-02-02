@@ -68,7 +68,6 @@ export class PollFormComponent extends React.Component<PollFormProps, PollFormSt
     handleSubmitForm(event) {
         event.preventDefault();
         let poll: any = {
-            token: window.localStorage.getItem('fcc-vote-app-api-key'),
             question: this.state.pollQuestion,
             responses: this.state.responses
         };

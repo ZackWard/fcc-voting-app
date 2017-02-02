@@ -28,7 +28,7 @@ export const reducer = (state = initialState, action) => {
             window.localStorage.setItem('fcc-vote-app-api-key', action.apiToken);
             window.localStorage.setItem('fcc-vote-app-user', action.user);
             newState.user = action.user;
-            browserHistory.push('/');
+            browserHistory.push('/polls');
             return newState;
         case actions.LOGIN_FAILURE: 
             console.log(action.message);
@@ -57,7 +57,7 @@ export const reducer = (state = initialState, action) => {
         case actions.SUBMIT_POLL_SUCCESS:
             console.log(action.message);
             console.log("Poll ID: " + action.pollId);
-            // hashHistory.push('/polls');
+            browserHistory.push('/polls');
             return newState;
         case actions.SUBMIT_POLL_FAILURE:
             console.log(action.message);
@@ -100,6 +100,26 @@ export const reducer = (state = initialState, action) => {
             return newState;
         case actions.RETRIEVE_POLL_FAILURE:
             newState.loading = false;
+            console.log(action.message);
+            return newState;
+        case actions.BEGIN_CAST_VOTE:
+            console.log(action.message);
+            return newState;
+        case actions.CAST_VOTE_SUCCESS:
+            console.log(action.message);
+            console.log(action.poll);
+            let replacedExistingPoll = false;
+            for (let i: number = 0; i < newState.retrievedPolls.length; i++) {
+                if (newState.retrievedPolls[i].poll_id == action.poll.poll_id) {
+                    newState.retrievedPolls[i] = action.poll;
+                    replacedExistingPoll = true;
+                }
+            }
+            if ( ! replacedExistingPoll ) {
+                newState.retrievedPolls.push(action.poll);
+            }
+            return newState;
+        case actions.CAST_VOTE_FAILURE:
             console.log(action.message);
             return newState;
         default: 

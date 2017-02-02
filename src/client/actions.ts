@@ -29,6 +29,10 @@ export const CAST_VOTE_SUCCESS = "CAST_VOTE_SUCCESS";
 export const CAST_VOTE_FAILURE = "CAST_VOTE_FAILURE";
 
 export function doApiPost(url: string, body: any) {
+    // Send the api key with every API call if we have it
+    if (window.localStorage.getItem('fcc-vote-app-api-key') != null) {
+        body.token = window.localStorage.getItem('fcc-vote-app-api-key');
+    }
     return new Promise(function (resolve, reject) {
         $.ajax({
             url: url,
@@ -51,6 +55,9 @@ export function doApiGet(url: string) {
             url: url,
             method: "GET",
             dataType: "json",
+            data: {
+                token: window.localStorage.getItem('fcc-vote-app-api-key')
+            },
             success: (json, status) => resolve(json),
             error: error => reject(error)
         });
@@ -192,7 +199,7 @@ export function retrievePolls() {
         .catch((error: any) => {
             dispatch({
                 type: RETRIEVE_POLLS_FAILURE,
-                message: "Unable to retrieve polls!"
+                message: "Unable to retrieve polls: " + error
             });
         });
     };
@@ -212,7 +219,8 @@ export function castVote(poll: number, response: number) {
         .then(serverResponse => {
             dispatch({
                 type: CAST_VOTE_SUCCESS,
-                message: "You cast a vote for response #" + response + " on Poll #" + poll
+                message: "You cast a vote for response #" + response + " on Poll #" + poll,
+                poll: serverResponse
             });
         })
         .catch(error => {

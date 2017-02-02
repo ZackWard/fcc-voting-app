@@ -54,7 +54,7 @@
 	var reducers_1 = __webpack_require__(270);
 	var VotingApp_1 = __webpack_require__(276);
 	var PollList_1 = __webpack_require__(278);
-	var SinglePollView_1 = __webpack_require__(279);
+	var SinglePollView_1 = __webpack_require__(281);
 	var RegisterUserForm_1 = __webpack_require__(282);
 	var LoginForm_1 = __webpack_require__(283);
 	var PollForm_1 = __webpack_require__(284);
@@ -28707,7 +28707,7 @@
 	            window.localStorage.setItem('fcc-vote-app-api-key', action.apiToken);
 	            window.localStorage.setItem('fcc-vote-app-user', action.user);
 	            newState.user = action.user;
-	            react_router_1.browserHistory.push('/');
+	            react_router_1.browserHistory.push('/polls');
 	            return newState;
 	        case actions.LOGIN_FAILURE:
 	            console.log(action.message);
@@ -28736,7 +28736,7 @@
 	        case actions.SUBMIT_POLL_SUCCESS:
 	            console.log(action.message);
 	            console.log("Poll ID: " + action.pollId);
-	            // hashHistory.push('/polls');
+	            react_router_1.browserHistory.push('/polls');
 	            return newState;
 	        case actions.SUBMIT_POLL_FAILURE:
 	            console.log(action.message);
@@ -28782,6 +28782,26 @@
 	            newState.loading = false;
 	            console.log(action.message);
 	            return newState;
+	        case actions.BEGIN_CAST_VOTE:
+	            console.log(action.message);
+	            return newState;
+	        case actions.CAST_VOTE_SUCCESS:
+	            console.log(action.message);
+	            console.log(action.poll);
+	            var replacedExistingPoll = false;
+	            for (var i = 0; i < newState.retrievedPolls.length; i++) {
+	                if (newState.retrievedPolls[i].poll_id == action.poll.poll_id) {
+	                    newState.retrievedPolls[i] = action.poll;
+	                    replacedExistingPoll = true;
+	                }
+	            }
+	            if (!replacedExistingPoll) {
+	                newState.retrievedPolls.push(action.poll);
+	            }
+	            return newState;
+	        case actions.CAST_VOTE_FAILURE:
+	            console.log(action.message);
+	            return newState;
 	        default:
 	            console.log("In reducer, default action:");
 	            console.log("Action: " + action.type);
@@ -28820,6 +28840,10 @@
 	exports.CAST_VOTE_SUCCESS = "CAST_VOTE_SUCCESS";
 	exports.CAST_VOTE_FAILURE = "CAST_VOTE_FAILURE";
 	function doApiPost(url, body) {
+	    // Send the api key with every API call if we have it
+	    if (window.localStorage.getItem('fcc-vote-app-api-key') != null) {
+	        body.token = window.localStorage.getItem('fcc-vote-app-api-key');
+	    }
 	    return new Promise(function (resolve, reject) {
 	        $.ajax({
 	            url: url,
@@ -28842,6 +28866,9 @@
 	            url: url,
 	            method: "GET",
 	            dataType: "json",
+	            data: {
+	                token: window.localStorage.getItem('fcc-vote-app-api-key')
+	            },
 	            success: function (json, status) { return resolve(json); },
 	            error: function (error) { return reject(error); }
 	        });
@@ -28978,7 +29005,7 @@
 	            .catch(function (error) {
 	            dispatch({
 	                type: exports.RETRIEVE_POLLS_FAILURE,
-	                message: "Unable to retrieve polls!"
+	                message: "Unable to retrieve polls: " + error
 	            });
 	        });
 	    };
@@ -28997,7 +29024,8 @@
 	            .then(function (serverResponse) {
 	            dispatch({
 	                type: exports.CAST_VOTE_SUCCESS,
-	                message: "You cast a vote for response #" + response + " on Poll #" + poll
+	                message: "You cast a vote for response #" + response + " on Poll #" + poll,
+	                poll: serverResponse
 	            });
 	        })
 	            .catch(function (error) {
@@ -30093,18 +30121,40 @@
 	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 	};
 	var React = __webpack_require__(1);
-	var PollList = (function (_super) {
-	    __extends(PollList, _super);
-	    function PollList(props) {
+	var react_redux_1 = __webpack_require__(255);
+	var actions_1 = __webpack_require__(271);
+	var Poll_1 = __webpack_require__(279);
+	var PollListComponent = (function (_super) {
+	    __extends(PollListComponent, _super);
+	    function PollListComponent(props) {
 	        return _super.call(this, props) || this;
 	    }
-	    PollList.prototype.render = function () {
+	    PollListComponent.prototype.render = function () {
+	        var _this = this;
+	        if (this.props.loading) {
+	            return (React.createElement("div", { className: "container" },
+	                React.createElement("h2", null, "Loading...")));
+	        }
 	        return (React.createElement("div", { className: "container" },
-	            React.createElement("h1", null, "All Polls")));
+	            React.createElement("h1", null, "All Polls"),
+	            this.props.polls.map(function (poll) {
+	                return React.createElement(Poll_1.Poll, { loading: _this.props.loading, poll: poll, key: poll.poll_id, voteHandler: _this.props.castVote });
+	            })));
 	    };
-	    return PollList;
+	    return PollListComponent;
 	}(React.Component));
-	exports.PollList = PollList;
+	var mapStateToProps = function (state) {
+	    return {
+	        polls: state.retrievedPolls,
+	        loading: state.loading
+	    };
+	};
+	var mapDispatchToProps = function (dispatch) {
+	    return {
+	        castVote: function (poll, response) { dispatch(actions_1.castVote(poll, response)); }
+	    };
+	};
+	exports.PollList = react_redux_1.connect(mapStateToProps, mapDispatchToProps)(PollListComponent);
 
 
 /***/ },
@@ -30118,94 +30168,39 @@
 	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 	};
 	var React = __webpack_require__(1);
-	var react_redux_1 = __webpack_require__(255);
-	var Poll_1 = __webpack_require__(280);
-	var actions_1 = __webpack_require__(271);
-	var SinglePollViewComponent = (function (_super) {
-	    __extends(SinglePollViewComponent, _super);
-	    function SinglePollViewComponent(props) {
-	        var _this = _super.call(this, props) || this;
-	        _this.getDerivedState = _this.getDerivedState.bind(_this);
-	        _this.state = _this.getDerivedState(props);
-	        return _this;
-	    }
-	    SinglePollViewComponent.prototype.componentWillReceiveProps = function (nextProps) {
-	        this.setState(this.getDerivedState(nextProps));
-	    };
-	    SinglePollViewComponent.prototype.getDerivedState = function (props) {
-	        var singlePoll = {
-	            id: 0,
-	            question: props.loading ? "Loading..." : "Poll not found",
-	            responses: [],
-	            retrieveAttempted: this.state == undefined ? false : this.state.retrieveAttempted
-	        };
-	        var found = false;
-	        for (var i = 0; i < props.polls.length; i++) {
-	            if (props.params.pollId == props.polls[i].poll_id) {
-	                found = true;
-	                singlePoll.id = props.polls[i].poll_id;
-	                singlePoll.question = props.polls[i].question;
-	                singlePoll.responses = props.polls[i].responses;
-	            }
-	        }
-	        if (!found && !props.loading && !singlePoll.retrieveAttempted) {
-	            // The poll that we're looking for isn't loaded. Try to load it from the server
-	            this.props.retrievePoll(props.params.pollId);
-	            singlePoll.retrieveAttempted = true;
-	        }
-	        return singlePoll;
-	    };
-	    SinglePollViewComponent.prototype.render = function () {
-	        return (React.createElement("div", { className: "container" },
-	            React.createElement(Poll_1.Poll, { id: this.props.params.pollId, question: this.state.question, responses: this.state.responses, voteHandler: this.props.castVote })));
-	    };
-	    return SinglePollViewComponent;
-	}(React.Component));
-	var mapStateToProps = function (state) {
-	    return {
-	        polls: state.retrievedPolls,
-	        loading: state.loading
-	    };
-	};
-	var mapDispatchToProps = function (dispatch) {
-	    return {
-	        retrievePoll: function (pollId) { dispatch(actions_1.retrievePoll(pollId)); },
-	        castVote: function (poll, response) { dispatch(actions_1.castVote(poll, response)); }
-	    };
-	};
-	exports.SinglePollView = react_redux_1.connect(mapStateToProps, mapDispatchToProps)(SinglePollViewComponent);
-
-
-/***/ },
-/* 280 */
-/***/ function(module, exports, __webpack_require__) {
-
-	"use strict";
-	var __extends = (this && this.__extends) || function (d, b) {
-	    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
-	    function __() { this.constructor = d; }
-	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-	};
-	var React = __webpack_require__(1);
-	var VoteLink_1 = __webpack_require__(281);
+	var react_router_1 = __webpack_require__(178);
+	var VoteLink_1 = __webpack_require__(280);
 	var Poll = (function (_super) {
 	    __extends(Poll, _super);
 	    function Poll(props) {
-	        return _super.call(this, props) || this;
+	        var _this = _super.call(this, props) || this;
+	        _this.viewPoll = _this.viewPoll.bind(_this);
+	        return _this;
 	    }
+	    Poll.prototype.viewPoll = function (event) {
+	        event.preventDefault();
+	        react_router_1.browserHistory.push('/polls/' + this.props.poll.poll_id);
+	    };
 	    Poll.prototype.render = function () {
 	        var _this = this;
+	        if (this.props.loading) {
+	            return (React.createElement("div", { className: "panel panel-default" },
+	                React.createElement("div", { className: "panel-heading" },
+	                    React.createElement("h2", { className: "panel-title" }, "Loading..."))));
+	        }
 	        return (React.createElement("div", { className: "panel panel-default" },
 	            React.createElement("div", { className: "panel-heading" },
-	                React.createElement("h3", { className: "panel-title" }, this.props.question)),
+	                React.createElement("h3", { className: "panel-title" },
+	                    React.createElement("a", { href: "#", onClick: this.viewPoll }, this.props.poll.question))),
 	            React.createElement("div", { className: "panel-body" },
-	                React.createElement("ul", null, this.props.responses.map(function (response, index) {
+	                React.createElement("ul", null, this.props.poll.responses.map(function (response, index) {
 	                    return (React.createElement("li", { key: index },
-	                        React.createElement(VoteLink_1.VoteLink, { pollId: _this.props.id, responseId: index, clickHandler: _this.props.voteHandler },
+	                        React.createElement(VoteLink_1.VoteLink, { pollId: _this.props.poll.poll_id, responseId: index, clickHandler: _this.props.voteHandler },
 	                            response.response,
 	                            " - Votes: ",
 	                            response.votes)));
-	                })))));
+	                })),
+	                this.props.poll.hasVoted ? React.createElement("b", null, "You've already voted!") : false)));
 	    };
 	    return Poll;
 	}(React.Component));
@@ -30213,7 +30208,7 @@
 
 
 /***/ },
-/* 281 */
+/* 280 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
@@ -30225,6 +30220,57 @@
 	    };
 	    return (React.createElement("a", { href: "#", onClick: thisClickHandler }, props.children));
 	};
+
+
+/***/ },
+/* 281 */
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+	var __extends = (this && this.__extends) || function (d, b) {
+	    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+	    function __() { this.constructor = d; }
+	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+	};
+	var React = __webpack_require__(1);
+	var react_redux_1 = __webpack_require__(255);
+	var Poll_1 = __webpack_require__(279);
+	var actions_1 = __webpack_require__(271);
+	var SinglePollViewComponent = (function (_super) {
+	    __extends(SinglePollViewComponent, _super);
+	    function SinglePollViewComponent(props) {
+	        return _super.call(this, props) || this;
+	    }
+	    SinglePollViewComponent.prototype.render = function () {
+	        var pollIndex = null;
+	        for (var i = 0; i < this.props.polls.length; i++) {
+	            if (this.props.polls[i].poll_id == this.props.params.pollId) {
+	                pollIndex = i;
+	            }
+	        }
+	        var pollElement;
+	        if (this.props.loading) {
+	            pollElement = React.createElement(Poll_1.Poll, { loading: this.props.loading, poll: null, voteHandler: this.props.castVote });
+	        }
+	        else {
+	            pollElement = React.createElement(Poll_1.Poll, { loading: this.props.loading, poll: this.props.polls[pollIndex], voteHandler: this.props.castVote });
+	        }
+	        return (React.createElement("div", { className: "container" }, pollElement));
+	    };
+	    return SinglePollViewComponent;
+	}(React.Component));
+	var mapStateToProps = function (state) {
+	    return {
+	        polls: state.retrievedPolls,
+	        loading: state.loading
+	    };
+	};
+	var mapDispatchToProps = function (dispatch) {
+	    return {
+	        castVote: function (poll, response) { dispatch(actions_1.castVote(poll, response)); }
+	    };
+	};
+	exports.SinglePollView = react_redux_1.connect(mapStateToProps, mapDispatchToProps)(SinglePollViewComponent);
 
 
 /***/ },
@@ -30437,7 +30483,6 @@
 	    PollFormComponent.prototype.handleSubmitForm = function (event) {
 	        event.preventDefault();
 	        var poll = {
-	            token: window.localStorage.getItem('fcc-vote-app-api-key'),
 	            question: this.state.pollQuestion,
 	            responses: this.state.responses
 	        };

@@ -8,7 +8,7 @@ import { Provider } from "react-redux";
 import { reducer } from "./reducers";
 
 import { VotingApp } from "./containers/VotingApp";
-import { PollList } from "./components/PollList";
+import { PollList } from "./containers/PollList";
 import { SinglePollView } from "./containers/SinglePollView";
 import { RegisterUserForm } from "./containers/RegisterUserForm";
 import { LoginForm } from "./containers/LoginForm";
