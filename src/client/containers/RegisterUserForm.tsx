@@ -11,7 +11,8 @@ interface RegisterUserFormState {
     username?: string,
     email?: string,
     password?: string,
-    passwordVerification?: string
+    passwordVerification?: string,
+    localError?: string
 }
 
 export class RegisterUserFormComponent extends React.Component<RegisterUserFormProps, RegisterUserFormState> {
@@ -36,7 +37,9 @@ export class RegisterUserFormComponent extends React.Component<RegisterUserFormP
     handleRegister(event) {
         event.preventDefault();
         if (this.state.password !== this.state.passwordVerification) {
-            alert("Passwords do not match!");
+            this.setState({
+                localError: "Passwords do not match!"
+            });
             return;
         }
         var userInfo = {
@@ -44,13 +47,8 @@ export class RegisterUserFormComponent extends React.Component<RegisterUserFormP
             email: this.state.email,
             password: this.state.password
         };
-        this.setState({
-            username: '',
-            email: '',
-            password: '',
-            passwordVerification: ''
-        });
         this.props.onRegister(userInfo);
+        this.setState({});
     }
 
     render() {
@@ -61,6 +59,10 @@ export class RegisterUserFormComponent extends React.Component<RegisterUserFormP
 
                     {this.props.error && 
                         <div className="alert alert-danger" role="alert">{this.props.error}</div>      
+                    }
+
+                    {this.state.localError && 
+                        <div className="alert alert-danger" role="alert">{this.state.localError}</div>      
                     }
 
                     <div className="form-group">

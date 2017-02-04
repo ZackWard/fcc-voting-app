@@ -28,6 +28,9 @@ export const BEGIN_CAST_VOTE = "BEGIN_CAST_VOTE";
 export const CAST_VOTE_SUCCESS = "CAST_VOTE_SUCCESS";
 export const CAST_VOTE_FAILURE = "CAST_VOTE_FAILURE";
 
+export const EDIT_POLL = "EDIT_POLL";
+export const DELETE_POLL = "DELETE_POLL";
+
 export function doApiPost(url: string, body: any) {
     // Send the api key with every API call if we have it
     if (window.localStorage.getItem('fcc-vote-app-api-key') != null) {
@@ -79,6 +82,7 @@ export function submitPollForm(poll) {
                 message: json.message,
                 pollId: json.pollId
             });
+            dispatch(retrievePolls());
         })
         .catch((json: any) => {
             dispatch({
@@ -109,6 +113,7 @@ export function beginRegister(userInfo) {
                 type: REGISTER_USER_SUCCESS,
                 message: "Registered user!"
             });
+            dispatch(beginLogin(userInfo.username, userInfo.password));
         })
         .catch((json: any) => {
             dispatch({
@@ -138,6 +143,7 @@ export function beginLogin(username: string, password: string) {
                 apiToken: json.apiToken,
                 user: username
             });
+            dispatch(retrievePolls());
         })
         .catch((json) => {
             dispatch({
@@ -231,6 +237,24 @@ export function castVote(poll: number, response: number) {
         });
     };
 }
+
+export function editPoll(poll: number) {
+    return function (dispatch) {
+        dispatch({
+            type: EDIT_POLL,
+            message: "Editing poll #" + poll
+        });
+    };
+};
+
+export function deletePoll(poll: number) {
+    return function (dispatch) {
+        dispatch({
+            type: DELETE_POLL,
+            message: "Deleting poll #" + poll
+        });
+    };
+};
 
 export function tokenExpired() {
     return {

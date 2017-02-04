@@ -15,6 +15,8 @@ const initialState: appState = {
     retrievedPolls: []
 };
 
+
+
 export const reducer = (state = initialState, action) => {
     // Make a copy of state
     let newState: appState = JSON.parse(JSON.stringify(state));

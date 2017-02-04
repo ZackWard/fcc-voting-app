@@ -10,18 +10,18 @@ before('Set up Database', function (done) {
         .catch((e) => {done(e)});
 });
 
-describe("GET /register", function () {
+describe("Database Test 1", function () {
     it('Should show a new user form');
 });
 
-describe("POST /api/user", function () {
+describe("Database Test 2", function () {
     it('Should create a new user');
 });
 
-describe("GET /login", function () {
+describe("Database test 3", function () {
     it("Should display a login form");
 });
 
-describe("POST /login", function () {
+describe("Database test 4", function () {
     it("should check login credentials and if correct, issue a token");
 });

@@ -9,6 +9,7 @@ Technologies to use:
 * Redux
 * Typescript
 * JSON Web Tokens for authentication
+* D3.js
 
 ## Back End
 

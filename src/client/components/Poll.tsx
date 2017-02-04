@@ -1,11 +1,18 @@
 import * as React from "react";
 import { browserHistory } from "react-router";
-import { VoteLink } from "./VoteLink";
+import { Spinner } from "./Spinner";
+import { PollToolBar } from "./PollToolbar";
+import { PollResponses } from "./PollResponses";
+import { PollResult } from "./PollResult";
+import * as d3 from "d3";
 
 interface PollProps {
     poll: any,
     loading: boolean,
-    voteHandler: (poll: number, response: number) => any
+    editable: boolean,
+    voteHandler: (poll: number, response: number) => any,
+    editHandler: (poll: number) => any,
+    deleteHandler: (poll: number) => any
 }
 
 interface PollState {
@@ -25,36 +32,35 @@ export class Poll extends React.Component<PollProps, PollState> {
     }
 
     render() {
+        // Return early if loading
         if (this.props.loading) {
             return (
                 <div className="panel panel-default">
-                    <div className="panel-heading">
-                        <h2 className="panel-title">Loading...</h2>
+                    <div className="panel-body">
+                        <Spinner />
                     </div>
                 </div>
             );
         }
 
+        let panelHeading: any = <a href="#" onClick={this.viewPoll}>{this.props.poll.question}</a>;
+
+        let panelBody = this.props.poll.hasVoted ? <PollResult responses={this.props.poll.responses} /> : <PollResponses poll={this.props.poll} voteHandler={this.props.voteHandler} />
+
+        let panelFooter = this.props.editable ?
+            <PollToolBar id={this.props.poll.poll_id} editHandler={this.props.editHandler} deleteHandler={this.props.deleteHandler} /> : 
+            <a href="#" onClick={(e) => {e.preventDefault(); browserHistory.push('/users/' + this.props.poll.username)}}>{this.props.poll.username}</a>;
+
         return (
             <div className="panel panel-default">
                 <div className="panel-heading">
-                    <h3 className="panel-title"><a href="#" onClick={this.viewPoll}>{this.props.poll.question}</a></h3>
+                    <h3 className="panel-title">{panelHeading}</h3>
                 </div>
                 <div className="panel-body">
-                    <ul>
-                        {
-                            this.props.poll.responses.map((response, index) => {
-                                return (
-                                    <li key={index}>
-                                        <VoteLink pollId={this.props.poll.poll_id} responseId={index} clickHandler={this.props.voteHandler}>
-                                            {response.response} - Votes: {response.votes}
-                                        </VoteLink>
-                                    </li>
-                                );
-                            })
-                        }
-                    </ul>
-                    {this.props.poll.hasVoted ? <b>You've already voted!</b> : false}
+                    { panelBody }
+                    <div className="text-right">
+                        { panelFooter }
+                    </div>
                 </div>
             </div>
         );

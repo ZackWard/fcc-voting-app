@@ -1,12 +1,15 @@
 import * as React from "react";
 import { connect } from "react-redux";
-import { castVote } from "../actions";
+import { castVote, editPoll, deletePoll } from "../actions";
 import { Poll } from "../components/Poll";
 
 interface PollListProps {
     polls: any[],
     loading: boolean,
-    castVote: (poll: number, response: number) => any
+    user: string | null,
+    castVote: (poll: number, response: number) => any,
+    handleEdit: (poll: number) => any,
+    handleDelete: (poll: number) => any
 }
 
 interface PollResponse {
@@ -40,7 +43,13 @@ class PollListComponent extends React.Component<PollListProps, PollListState> {
                 <h1>All Polls</h1>
                 {
                     this.props.polls.map(poll => {
-                        return <Poll loading={this.props.loading} poll={poll} key={poll.poll_id} voteHandler={this.props.castVote}></Poll>
+                        return <Poll    editable={poll.username == this.props.user} 
+                                        loading={this.props.loading} 
+                                        poll={poll} 
+                                        key={poll.poll_id} 
+                                        voteHandler={this.props.castVote} 
+                                        editHandler={this.props.handleEdit} 
+                                        deleteHandler={this.props.handleDelete} />
                     })
                 }
             </div>
@@ -51,13 +60,16 @@ class PollListComponent extends React.Component<PollListProps, PollListState> {
 const mapStateToProps = (state) => {
     return {
         polls: state.retrievedPolls,
-        loading: state.loading
+        loading: state.loading,
+        user: state.user
     };
 };
 
 const mapDispatchToProps = (dispatch) => {
     return {
-        castVote: (poll: number, response: number) => { dispatch(castVote(poll, response)) }
+        castVote: (poll: number, response: number) => { dispatch(castVote(poll, response)) },
+        handleEdit: (poll: number) => { dispatch(editPoll(poll)) },
+        handleDelete: (poll: number) => { dispatch(deletePoll(poll)) }
     };
 };
 
