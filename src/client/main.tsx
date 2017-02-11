@@ -17,10 +17,12 @@ import { PollForm } from "./containers/PollForm";
 
 const store = createStore(reducer, applyMiddleware(thunkMiddleware));
 
+let baseUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+
 ReactDOM.render(
   <Provider store={store}>
     <Router history={browserHistory}>
-      <Route path="/" component={VotingApp}>
+      <Route path={baseUrl} component={VotingApp}>
         <Route path="/login" component={LoginForm} />
         <Route path="/register" component={RegisterUserForm} />
         <Route path="/polls/new" component={PollForm} />

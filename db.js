@@ -263,9 +263,9 @@ function castVote(poll, response, newResponse, user, ip) {
     ip = ip == undefined ? false : ip;
     // TODO: Remove this debug feature
     // Generate a random IP address so that we can test voting
-    const getRandomIpSegment = () => Math.floor(Math.random() * 254) + 1;
-    ip = getRandomIpSegment() + "." + getRandomIpSegment() + "." + getRandomIpSegment() + "." + getRandomIpSegment();
-    console.log("DEBUG: Generated fake IP: " + ip);
+    // const getRandomIpSegment = () => Math.floor(Math.random() * 254) + 1;
+    // ip = getRandomIpSegment() + "." + getRandomIpSegment() + "." + getRandomIpSegment() + "." + getRandomIpSegment();
+    // console.log("DEBUG: Generated fake IP: " + ip);
     return new Promise(function (resolve, reject) {
         if (state.db == null) {
             return reject("Database not available");
