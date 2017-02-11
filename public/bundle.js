@@ -1600,12 +1600,10 @@ exports.GET_POLLS_BY_USER = "GET_POLLS_BY_USER";
 exports.GET_POLLS_BY_USER_SUCCESS = "GET_POLLS_BY_USER_SUCCESS";
 exports.GET_POLLS_BY_USER_FAILURE = "GET_POLLS_BY_USER_FAILURE";
 exports.ADD_CUSTOM_RESPONSE = "ADD_CUSTOM_RESPONSE";
-// Yuck
-var baseUrl = window.location.host == "zackward.net" ? "/projects/voting-app" : "";
 function doApiPost(url, body) {
     return new Promise(function (resolve, reject) {
         $.ajax({
-            url: baseUrl + url,
+            url: url,
             method: "POST",
             dataType: "json",
             headers: {
@@ -1624,7 +1622,7 @@ function doApiCall(url, method) {
     if (method === void 0) { method = "GET"; }
     return new Promise(function (resolve, reject) {
         $.ajax({
-            url: baseUrl + url,
+            url: url,
             method: method,
             dataType: "json",
             headers: {
@@ -47382,11 +47380,9 @@ var RegisterUserForm_1 = __webpack_require__(135);
 var LoginForm_1 = __webpack_require__(131);
 var PollForm_1 = __webpack_require__(132);
 var store = redux_1.createStore(reducers_1.reducer, redux_1.applyMiddleware(redux_thunk_1.default));
-// This is so awful, but hopefully it will work for now
-var baseUrl = window.location.host == "zackward.net" ? "/projects/voting-app/" : "/";
 ReactDOM.render(React.createElement(react_redux_1.Provider, { store: store },
     React.createElement(react_router_1.Router, { history: react_router_1.browserHistory },
-        React.createElement(react_router_1.Route, { path: baseUrl, component: VotingApp_1.VotingApp },
+        React.createElement(react_router_1.Route, { path: "/", component: VotingApp_1.VotingApp },
             React.createElement(react_router_1.Route, { path: "/login", component: LoginForm_1.LoginForm }),
             React.createElement(react_router_1.Route, { path: "/register", component: RegisterUserForm_1.RegisterUserForm }),
             React.createElement(react_router_1.Route, { path: "/polls/new", component: PollForm_1.PollForm }),

@@ -17,13 +17,10 @@ import { PollForm } from "./containers/PollForm";
 
 const store = createStore(reducer, applyMiddleware(thunkMiddleware));
 
-// This is so awful, but hopefully it will work for now
-let baseUrl = window.location.host == "zackward.net" ? "/projects/voting-app/" : "/"
-
 ReactDOM.render(
   <Provider store={store}>
     <Router history={browserHistory}>
-      <Route path={baseUrl} component={VotingApp}>
+      <Route path={"/"} component={VotingApp}>
         <Route path="/login" component={LoginForm} />
         <Route path="/register" component={RegisterUserForm} />
         <Route path="/polls/new" component={PollForm} />
