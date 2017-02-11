@@ -38,10 +38,13 @@ export const GET_POLLS_BY_USER_FAILURE = "GET_POLLS_BY_USER_FAILURE";
 
 export const ADD_CUSTOM_RESPONSE = "ADD_CUSTOM_RESPONSE";
 
+// Yuck
+let baseUrl = window.location.host == "zackward.net" ? "/projects/voting-app" : "";
+
 export function doApiPost(url: string, body: any) {
     return new Promise(function (resolve, reject) {
         $.ajax({
-            url: url,
+            url: baseUrl + url,
             method: "POST",
             dataType: "json",
             headers: {
@@ -59,7 +62,7 @@ export function doApiPost(url: string, body: any) {
 export function doApiCall(url: string, method: string = "GET") {
     return new Promise(function (resolve, reject) {
         $.ajax({
-            url: url,
+            url: baseUrl + url,
             method: method,
             dataType: "json",
             headers: {
