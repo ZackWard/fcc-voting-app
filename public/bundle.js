@@ -47380,10 +47380,9 @@ var RegisterUserForm_1 = __webpack_require__(135);
 var LoginForm_1 = __webpack_require__(131);
 var PollForm_1 = __webpack_require__(132);
 var store = redux_1.createStore(reducers_1.reducer, redux_1.applyMiddleware(redux_thunk_1.default));
-var baseUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
 ReactDOM.render(React.createElement(react_redux_1.Provider, { store: store },
     React.createElement(react_router_1.Router, { history: react_router_1.browserHistory },
-        React.createElement(react_router_1.Route, { path: baseUrl, component: VotingApp_1.VotingApp },
+        React.createElement(react_router_1.Route, { path: window.location.pathname, component: VotingApp_1.VotingApp },
             React.createElement(react_router_1.Route, { path: "/login", component: LoginForm_1.LoginForm }),
             React.createElement(react_router_1.Route, { path: "/register", component: RegisterUserForm_1.RegisterUserForm }),
             React.createElement(react_router_1.Route, { path: "/polls/new", component: PollForm_1.PollForm }),
