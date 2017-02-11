@@ -6,6 +6,8 @@ const db = require("./db");
 const api_1 = require("./api");
 var app = express();
 var port = 3005;
+// Trust our proxy
+app.enable('trust proxy');
 app.use(helmet());
 app.use('/static', express.static(path.join(__dirname, '/public')));
 app.use('/api', api_1.router);

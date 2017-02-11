@@ -22,6 +22,7 @@ export class VotingAppComponent extends React.Component<VotingAppProps, VotingAp
         return (
             <div>
                 <Nav></Nav>
+                <h3>Thank you for helping me test out my voting app. To get started, see what polls have already been created. You can also create an account and make your own polls.</h3>
                 {this.props.children}
             </div>
         );

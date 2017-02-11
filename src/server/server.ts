@@ -8,6 +8,9 @@ import { router as apiRouter } from "./api";
 var app = express();
 var port = 3005;
 
+// Trust our proxy
+app.enable('trust proxy');
+
 app.use(helmet());
 
 app.use('/static', express.static(path.join(__dirname, '/public')));
