@@ -14037,7 +14037,6 @@ var VotingAppComponent = (function (_super) {
     VotingAppComponent.prototype.render = function () {
         return (React.createElement("div", null,
             React.createElement(Nav_1.Nav, null),
-            React.createElement("h3", null, "Thank you for helping me test out my voting app. To get started, see what polls have already been created. You can also create an account and make your own polls."),
             this.props.children));
     };
     return VotingAppComponent;
