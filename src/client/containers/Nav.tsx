@@ -2,7 +2,7 @@ import * as React from 'react';
 import { connect } from "react-redux";
 import * as actions from "../actions";
 import { BootstrapLink } from "../components/BootstrapLink";
-import { Link } from 'react-router';
+import { IndexLink } from 'react-router';
 
 interface NavProps {
     user: string | null,
@@ -31,7 +31,7 @@ const NavComponent = (props: NavProps) => {
                         <span className="icon-bar"></span>
                         <span className="icon-bar"></span>
                     </button>
-                    <a className="navbar-brand" href="#">Brand</a>
+                    <IndexLink to="/" className="navbar-brand">FCC Voting App</IndexLink>
                 </div>
 
                 <div className="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
