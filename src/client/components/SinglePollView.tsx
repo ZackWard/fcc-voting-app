@@ -1,5 +1,5 @@
 import * as React from "react";
-import { PollContainer } from "../containers/PollContainer";
+import { Poll } from "../containers/Poll";
 
 interface SinglePollViewProps {
     params: {
@@ -8,9 +8,10 @@ interface SinglePollViewProps {
 }
 
 export const SinglePollView = (props: SinglePollViewProps) => {
+
     return (
         <div className="container">
-            <PollContainer id={props.params.pollId} />
+            <Poll id={Number(props.params.pollId)} />
         </div>
     );
 };

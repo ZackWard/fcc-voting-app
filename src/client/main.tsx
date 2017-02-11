@@ -8,7 +8,8 @@ import { Provider } from "react-redux";
 import { reducer } from "./reducers";
 
 import { VotingApp } from "./containers/VotingApp";
-import { PollList } from "./containers/PollList";
+import { PollListView } from "./containers/PollListView";
+import { PollListByUser } from "./containers/PollListByUser";
 import { SinglePollView } from "./components/SinglePollView";
 import { RegisterUserForm } from "./containers/RegisterUserForm";
 import { LoginForm } from "./containers/LoginForm";
@@ -20,12 +21,12 @@ ReactDOM.render(
   <Provider store={store}>
     <Router history={browserHistory}>
       <Route path="/" component={VotingApp}>
-        <Route path="/login" component={LoginForm}></Route>
-        <Route path="/register" component={RegisterUserForm}></Route>
-        <Route path="/polls/new" component={PollForm}></Route>
-        <Route path="/polls/:pollId/edit" component={PollForm}></Route>
-        <Route path="/polls/:pollId" component={SinglePollView}></Route>
-        <Route path="/polls" component={PollList}></Route>
+        <Route path="/login" component={LoginForm} />
+        <Route path="/register" component={RegisterUserForm} />
+        <Route path="/polls/new" component={PollForm} />
+        <Route path="/polls/:pollId" component={SinglePollView} />
+        <Route path="/polls" component={PollListView} />
+        <Route path="/users/:user/polls" component={PollListByUser} />
       </Route>
     </Router>
   </Provider>,

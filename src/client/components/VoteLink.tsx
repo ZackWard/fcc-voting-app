@@ -15,6 +15,6 @@ export const VoteLink = (props: VoteLinkProps) => {
     };
 
     return (
-        <a href="#" onClick={thisClickHandler}>{props.children}</a>
+        <a href="#" className="list-group-item" onClick={thisClickHandler}>{props.children}</a>
     );
 };

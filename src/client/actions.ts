@@ -30,19 +30,23 @@ export const CAST_VOTE_FAILURE = "CAST_VOTE_FAILURE";
 
 export const EDIT_POLL = "EDIT_POLL";
 export const DELETE_POLL = "DELETE_POLL";
+export const DELETE_POLL_SUCCESS = "DELETE_POLL_SUCCESS";
+
+export const GET_POLLS_BY_USER = "GET_POLLS_BY_USER";
+export const GET_POLLS_BY_USER_SUCCESS = "GET_POLLS_BY_USER_SUCCESS";
+export const GET_POLLS_BY_USER_FAILURE = "GET_POLLS_BY_USER_FAILURE";
+
+export const ADD_CUSTOM_RESPONSE = "ADD_CUSTOM_RESPONSE";
 
 export function doApiPost(url: string, body: any) {
-    // Send the api key with every API call if we have it
-    if (window.localStorage.getItem('fcc-vote-app-api-key') != null) {
-        body.token = window.localStorage.getItem('fcc-vote-app-api-key');
-    }
     return new Promise(function (resolve, reject) {
         $.ajax({
             url: url,
             method: "POST",
             dataType: "json",
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Authorization': window.localStorage.getItem('fcc-vote-app-api-key')
             },
             processData: false,
             data: JSON.stringify(body),
@@ -52,19 +56,27 @@ export function doApiPost(url: string, body: any) {
     });
 }
 
-export function doApiGet(url: string) {
+export function doApiCall(url: string, method: string = "GET") {
     return new Promise(function (resolve, reject) {
         $.ajax({
             url: url,
-            method: "GET",
+            method: method,
             dataType: "json",
-            data: {
-                token: window.localStorage.getItem('fcc-vote-app-api-key')
+            headers: {
+                Authorization: window.localStorage.getItem('fcc-vote-app-api-key')
             },
             success: (json, status) => resolve(json),
             error: error => reject(error)
         });
     });
+}
+
+export function doApiGet(url: string) {
+    return doApiCall(url);
+}
+
+export function doApiDelete(url: string) {
+    return doApiCall(url, "DELETE");
 }
 
 export function submitPollForm(poll) {
@@ -80,9 +92,8 @@ export function submitPollForm(poll) {
             dispatch({
                 type: SUBMIT_POLL_SUCCESS,
                 message: json.message,
-                pollId: json.pollId
+                poll: json.poll
             });
-            dispatch(retrievePolls());
         })
         .catch((json: any) => {
             dispatch({
@@ -174,13 +185,37 @@ export function retrievePoll(pollId: number) {
             dispatch({
                 type: RETRIEVE_POLL_SUCCESS,
                 message: "Retrieved poll #" + pollId,
-                poll: poll[0]
+                poll: poll
             });
         })
         .catch(error => {
             dispatch({
                 type: RETRIEVE_POLL_FAILURE,
                 message: "Unable to retrieve poll #" + pollId
+            });
+        });
+    };
+}
+
+export function retrievePollsByUser(user: string) {
+    return function (dispatch) {
+        dispatch({
+            type: GET_POLLS_BY_USER,
+            message: "Getting polls for user " + user
+        });
+
+        doApiGet('/api/users/' + user + '/polls')
+        .then(result => {
+            dispatch({
+                type: GET_POLLS_BY_USER_SUCCESS,
+                message: "Retrieved polls by " + user,
+                polls: result
+            });
+        })
+        .catch(error => {
+            dispatch({
+                type: GET_POLLS_BY_USER_FAILURE,
+                message: error
             });
         });
     };
@@ -211,21 +246,22 @@ export function retrievePolls() {
     };
 }
 
-export function castVote(poll: number, response: number) {
+export function castVote(poll: number, response: number, newResponse: boolean | string = false) {
     return function (dispatch) {
+        let voteMessage = (response == -1 && newResponse != false) ? "Voting for new response: " + newResponse : "You cast a vote for response #" + response + " on poll #" + poll;
         dispatch({
             type: BEGIN_CAST_VOTE,
-            message: "Casting vote for response #" + response + " on poll #" + poll
+            message: voteMessage
         });
 
         // Do API call
         let apiUrl = "/api/polls/" + Number(poll) + "/vote";
         let thisUser = window.localStorage.getItem('fcc-vote-app-user');
-        doApiPost(apiUrl, {response: Number(response), user: thisUser})
+        doApiPost(apiUrl, {response: Number(response), user: thisUser, newResponse: newResponse})
         .then(serverResponse => {
             dispatch({
                 type: CAST_VOTE_SUCCESS,
-                message: "You cast a vote for response #" + response + " on Poll #" + poll,
+                message: "You cast a vote! Congrats!",
                 poll: serverResponse
             });
         })
@@ -253,6 +289,19 @@ export function deletePoll(poll: number) {
             type: DELETE_POLL,
             message: "Deleting poll #" + poll
         });
+
+        doApiDelete('/api/polls/' + poll)
+        .then(json => {
+            dispatch({
+                type: DELETE_POLL_SUCCESS,
+                pollId: poll,
+            });
+            console.log(json);
+        })
+        .catch(error => {
+            console.log(error);
+        });
+
     };
 };
 

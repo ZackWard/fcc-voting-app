@@ -120,18 +120,18 @@ export function verifyPassword(username: string, password: string) {
  * 
 */
 
-export function addPoll(poll) {
+export function addPoll(poll, user: boolean | string, ip: boolean | string) {
     return new Promise(function (resolve, reject) {
         if (state.db == null) {
             return reject("Database not available.");
         }
         getMaxId()
         .then((maxId: number) => {
-            console.log("Max ID: " + maxId);
             poll.poll_id = maxId + 1;
             return state.db.collection('polls').insertOne(poll);
         })
-        .then(() => resolve(poll))
+        .then(() => getPoll(poll.poll_id, user, ip))
+        .then(insertedPolls => resolve(insertedPolls[0]))
         .catch(e => {
             console.log("Insertion error: " + e);
             return reject(e);
@@ -163,11 +163,11 @@ function getMaxId() {
     });
 }
 
-export function getPoll(pollId: number) {
-    return getPolls({ query: {poll_id: Number(pollId)}, projection: {"_id": 0}, limit: 1});
+export function getPoll(pollId: number, user, ip) {
+    return getPolls({ query: {poll_id: Number(pollId)}, projection: {"_id": 0}, limit: 1, user: user, ip: ip});
 }
 
-export function getPolls({query = {}, sort = {}, projection = {}, limit = null, skip = 0, ip = false, user = false} = {}) {
+export function getPolls({query = {}, sort = {}, projection = {"_id": 0}, limit = null, skip = 0, ip = false, user = false} = {}) {
     return new Promise(function (resolve, reject) {
         if (state.db == null) {
             return reject("Database not available");
@@ -213,7 +213,11 @@ function summarizePolls(polls: any[], user: boolean | string, ip: boolean | stri
 }
 
 export function getRecentPolls(user, ip) {
-    return getPolls({sort: {addedAt: -1}, projection: {"_id": 0}, user: user, ip: ip });
+    return getPolls({sort: {addedAt: -1}, limit: 100, user: user, ip: ip });
+}
+
+export function getPollsByUser(user: string, requestingUser, ip) {
+    return getPolls({ query: {username: user}, user: requestingUser, ip: ip });
 }
 
 function hasAlreadyVoted(poll: number, user: boolean | string, ip: boolean | string) {
@@ -244,7 +248,37 @@ function hasAlreadyVoted(poll: number, user: boolean | string, ip: boolean | str
     });
 }
 
-export function castVote(poll: number, response: number, user: string | boolean, ip: string | boolean) {
+function addCustomResponse(poll: number, response: string) {
+    return new Promise(function (resolve, reject) {
+    
+        // If there is a new response (someobody has voted for a response that wasn't already included as an option on the poll)
+        // insert it here
+
+        let newResponse = {
+            response: response,
+            votes: []
+        };
+
+        state.db.collection('polls').updateOne({poll_id: Number(poll)}, {"$push": {responses: newResponse}}, {}, function (err, result) {
+            if (err || result.modifiedCount < 1) {
+                // Something happened, we couldn't add the custom response
+                return reject(err);
+            }
+
+            // Ok, we've added the new response. Now we need to pass the index of that response to the next step in the promise chain
+            // to register the vote.
+            state.db.collection('polls').findOne({poll_id: Number(poll)}, function (err, doc) {
+                if (err) {
+                    return reject(err);
+                }
+                
+                resolve(doc.responses.length - 1);
+            });
+        });
+    });
+}
+
+export function castVote(poll: number, response: number, newResponse: boolean | string, user: string | boolean, ip: string | boolean) {
     user = user == undefined ? false : user;
     ip = ip == undefined ? false : ip;
 
@@ -264,8 +298,25 @@ export function castVote(poll: number, response: number, user: string | boolean,
             if (voted) {
                 console.log("Duplicate vote detected!");
                 return reject("User or IP Address has already voted on this poll");
+            }  
+            return voted;
+        })
+        .then( (voted) => {
+            // Check to see if the user is voting for a custom response. If so, add it, then carry on with the voting process
+            if (response < 0) {
+                // This is either an invalid response or a custom response
+                if (typeof newResponse == 'string') {
+                    // It is a custom response. Add it, then we'll carry on with the voting
+                    return addCustomResponse(poll, newResponse);
+                } else {
+                    // Invalid response
+                    return reject("There was a problem voting for your custom response");
+                }
             }
-            
+            return response;
+        })
+        .then(responseNumber => {
+
             let updateOperator = {
                 "$push": {}
             };
@@ -278,10 +329,8 @@ export function castVote(poll: number, response: number, user: string | boolean,
                 vote.ipAddress = ip;
             }
 
-            updateOperator["$push"]["responses." + response + ".votes"] = vote;
+            updateOperator["$push"]["responses." + responseNumber + ".votes"] = vote;
 
-            console.log("Update:");
-            console.log(updateOperator);
             state.db.collection('polls').updateOne({poll_id: Number(poll)}, updateOperator, {}, function (err, result) {
                 if (err) {
                     return reject(err);
@@ -294,6 +343,22 @@ export function castVote(poll: number, response: number, user: string | boolean,
                 });
             });
         })
+        .catch(error => reject(error));
+    });
+}
+
+export function deletePoll(poll: number, user: string, ip) {
+    return new Promise(function (resolve, reject) {
+        getPoll(poll, user, ip)
+        .then(result => result[0].username == user)
+        .then(isOwner => {
+            if (!isOwner) {
+                return reject({ error: "You do not have the authority to delete this poll." });
+            } else {
+                return state.db.collection('polls').deleteOne({poll_id: poll});
+            }
+        })
+        .then(deleteResult => resolve({message: "Poll #" + poll + " deleted. Number of deleted records: " + deleteResult.deletedCount}))
         .catch(error => reject(error));
     });
 }

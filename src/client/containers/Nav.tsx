@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { connect } from "react-redux";
 import * as actions from "../actions";
+import { BootstrapLink } from "../components/BootstrapLink";
 import { Link } from 'react-router';
 
 interface NavProps {
@@ -10,10 +11,15 @@ interface NavProps {
 
 const NavComponent = (props: NavProps) => {
     let loginOrRegister = [
-        <li key="register"><Link to="/register">Register</Link></li>,
-        <li key="login"><Link to="/login">Login</Link></li>
+        <BootstrapLink key="register" to="/register">Register</BootstrapLink>,
+        <BootstrapLink key="login" to="/login">Login</BootstrapLink>
     ];
     let logOut = <li><a onClick={event => {event.preventDefault(); props.doLogout();}} href="#">Logout</a></li>;
+
+    let loggedInUserLinks = [
+        <BootstrapLink key="mypolls" to={"/users/" + props.user + "/polls"}>My Polls</BootstrapLink>,
+        <BootstrapLink key="newpoll" to="/polls/new">New Poll</BootstrapLink>
+    ];
     
     return (
         <nav className="navbar navbar-default">
@@ -30,17 +36,11 @@ const NavComponent = (props: NavProps) => {
 
                 <div className="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
                     <ul className="nav navbar-nav">
-                        <li className="active"><a href="#">Link <span className="sr-only">(current)</span></a></li>
-                        <li><Link to="/polls">Polls</Link></li>
-                        { 
-                            window.localStorage.getItem('fcc-vote-app-user') != null && 
-                            <li><Link to="/polls/new">New Poll</Link></li>
-                        }
+                        { props.user == null ? false : loggedInUserLinks }
+                        <BootstrapLink to="/polls">Polls</BootstrapLink>
                     </ul>
                     <ul className="nav navbar-nav navbar-right">
-                        {
-                            props.user == null ? loginOrRegister : logOut
-                        }
+                        { props.user == null ? loginOrRegister : logOut }
                     </ul>
                 </div>
             </div>

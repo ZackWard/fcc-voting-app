@@ -9,15 +9,7 @@ dotenv.config();
 exports.router = express.Router();
 const jsonParser = bodyParser.json();
 const authenticateUser = (req, res, next) => {
-    let token = false;
-    if (req.method.toLowerCase() == "get") {
-        token = req.query.token;
-    }
-    else if (req.method.toLowerCase() == "post") {
-        token = req.body.token;
-    }
-    console.log("In authenticateUser");
-    console.log("Token: " + token);
+    let token = req.get('Authorization') == undefined ? false : req.get('Authorization');
     if (!token) {
         req.APIAuthenticatedUser = false;
         return next();
@@ -64,22 +56,23 @@ exports.router.post('/polls', validateUser, function (req, res) {
             error: "Invalid input. A poll must have at least one question and at least two responses."
         });
     }
-    db.addPoll({
+    let newPoll = {
         question: req.body.question,
         responses: req.body.responses,
         username: req.APIAuthenticatedUser,
         addedAt: new Date()
-    })
+    };
+    db.addPoll(newPoll, req.body.user, req.ip)
         .then(poll => {
         res.json({
             message: "Post added! Yippee!",
-            pollId: poll["_id"]
+            poll: poll
         });
     })
         .catch(error => { res.status(500).json({ error: "Server Error" }); });
 });
 exports.router.get('/polls/:poll_id', function (req, res) {
-    db.getPoll(req.params.poll_id)
+    db.getPoll(req.params.poll_id, req.APIAuthenticatedUser, req.ip)
         .then((polls) => {
         if (polls.length > 0) {
             res.json(polls);
@@ -94,10 +87,14 @@ exports.router.get('/polls/:poll_id', function (req, res) {
         error: "Error getting poll"
     }));
 });
+exports.router.delete('/polls/:poll_id', validateUser, function (req, res) {
+    console.log("Got request to delete poll #" + req.params.poll_id);
+    db.deletePoll(Number(req.params.poll_id), req.APIAuthenticatedUser, req.ip)
+        .then(json => res.json(json))
+        .catch(error => res.status(500).json(error));
+});
 exports.router.post('/polls/:poll_id/vote', function (req, res) {
-    console.log("Casting vote for response #" + req.body.response + " on poll #" + req.params.poll_id);
-    console.log("Request from: " + req.ip);
-    db.castVote(Number(req.params.poll_id), Number(req.body.response), req.body.user, req.ip)
+    db.castVote(Number(req.params.poll_id), Number(req.body.response), req.body.newResponse, req.body.user, req.ip)
         .then(result => res.json(result))
         .catch(error => {
         console.log(error);
@@ -105,6 +102,13 @@ exports.router.post('/polls/:poll_id/vote', function (req, res) {
             message: error
         });
     });
+});
+exports.router.get('/users/:user/polls', function (req, res) {
+    db.getPollsByUser(req.params.user, req.APIAuthenticatedUser, req.ip)
+        .then(result => res.json(result))
+        .catch(error => res.status(500).json({
+        error: "Unable to retrieve polls for user " + req.params.user
+    }));
 });
 exports.router.post('/login', function (req, res) {
     const username = req.body.username;
