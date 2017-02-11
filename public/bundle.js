@@ -14611,7 +14611,8 @@ var PollResult = (function (_super) {
         // D3.js set up
         var innerRadius = 30;
         var outerRadius = 48;
-        var arcs = d3.pie().value(function (d) { return d.votes; })(this.props.responses);
+        var filteredResponses = this.props.responses.filter(function (response) { return response.votes > 0; });
+        var arcs = d3.pie().value(function (d) { return d.votes; })(filteredResponses);
         var arcGen = d3.arc().padAngle(0.04).outerRadius(outerRadius).innerRadius(innerRadius);
         var color = d3.scaleOrdinal(d3.schemeCategory20); // Implicit ordinal scale
         // Chart style and spacing

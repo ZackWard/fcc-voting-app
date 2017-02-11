@@ -57,7 +57,8 @@ export class PollResult extends React.Component<PollResultProps, PollResultState
         let innerRadius = 30;
         let outerRadius = 48;
 
-        let arcs = d3.pie().value(d => d.votes)(this.props.responses);
+        let filteredResponses = this.props.responses.filter(response => response.votes > 0);
+        let arcs = d3.pie().value(d => d.votes)(filteredResponses);
         let arcGen = d3.arc().padAngle(0.04).outerRadius(outerRadius).innerRadius(innerRadius);
         let color = d3.scaleOrdinal(d3.schemeCategory20); // Implicit ordinal scale
 
