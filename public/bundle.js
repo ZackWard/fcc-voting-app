@@ -13955,6 +13955,14 @@ var __extends = (this && this.__extends) || function (d, b) {
     function __() { this.constructor = d; }
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
+var __assign = (this && this.__assign) || Object.assign || function(t) {
+    for (var s, i = 1, n = arguments.length; i < n; i++) {
+        s = arguments[i];
+        for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+            t[p] = s[p];
+    }
+    return t;
+};
 var React = __webpack_require__(3);
 var react_redux_1 = __webpack_require__(12);
 var actions = __webpack_require__(15);
@@ -13995,6 +14003,49 @@ var RegisterUserFormComponent = (function (_super) {
         this.setState({});
     };
     RegisterUserFormComponent.prototype.render = function () {
+        var usernameFieldAttrs = {}, emailFieldAttrs = {}, passwordFieldAttrs = {}, verifypwFieldAttrs = {};
+        if (this.state.username.length > 0) {
+            if (this.state.username.length < 4) {
+                usernameFieldAttrs.className = "has-error has-feedback";
+            }
+            else {
+                usernameFieldAttrs.className = "has-success has-feedback";
+            }
+        }
+        if (this.state.email.length > 0) {
+            if (this.state.email.length < 8) {
+                emailFieldAttrs.className = "has-error has-feedback";
+            }
+            else {
+                emailFieldAttrs.className = "has-success has-feedback";
+            }
+        }
+        if (this.state.password.length > 0) {
+            if (this.state.password.length < 8) {
+                passwordFieldAttrs.className = "has-error has-feedback";
+            }
+            else {
+                passwordFieldAttrs.className = "has-success has-feedback";
+            }
+            if (this.state.passwordVerification != this.state.password) {
+                verifypwFieldAttrs.className = "has-error has-feedback";
+            }
+            else {
+                verifypwFieldAttrs.className = "has-success has-feedback";
+            }
+        }
+        var warningIcon = [
+            React.createElement("span", { key: "warning", className: "glyphicon glyphicon-remove form-control-feedback", "aria-hidden": "true" }),
+            React.createElement("span", { key: "warning-sr", className: "sr-only" }, "(error)")
+        ];
+        var successIcon = [
+            React.createElement("span", { key: "success", className: "glyphicon glyphicon-ok form-control-feedback", "aria-hidden": "true" }),
+            React.createElement("span", { key: "success-sr", className: "sr-only" }, "(success)")
+        ];
+        var usernameIcon = (usernameFieldAttrs.className == "has-error has-feedback") ? warningIcon : (usernameFieldAttrs.className == "has-success has-feedback") ? successIcon : false;
+        var emailIcon = (emailFieldAttrs.className == "has-error has-feedback") ? warningIcon : (emailFieldAttrs.className == "has-success has-feedback") ? successIcon : false;
+        var passwordIcon = (passwordFieldAttrs.className == "has-error has-feedback") ? warningIcon : (passwordFieldAttrs.className == "has-success has-feedback") ? successIcon : false;
+        var verifypwIcon = (verifypwFieldAttrs.className == "has-error has-feedback") ? warningIcon : (verifypwFieldAttrs.className == "has-success has-feedback") ? successIcon : false;
         return (React.createElement("div", { className: "container" },
             React.createElement("form", null,
                 React.createElement("h1", null, "New User"),
@@ -14002,18 +14053,26 @@ var RegisterUserFormComponent = (function (_super) {
                     React.createElement("div", { className: "alert alert-danger", role: "alert" }, this.props.error),
                 this.state.localError &&
                     React.createElement("div", { className: "alert alert-danger", role: "alert" }, this.state.localError),
-                React.createElement("div", { className: "form-group" },
+                React.createElement("div", __assign({ className: "form-group" }, usernameFieldAttrs),
                     React.createElement("label", { htmlFor: "username" }, "Username"),
-                    React.createElement("input", { type: "text", className: "form-control", id: "username", name: "username", onChange: this.handleChange, placeholder: "Username", value: this.state.username })),
-                React.createElement("div", { className: "form-group" },
+                    React.createElement("input", { type: "text", className: "form-control", id: "username", name: "username", "aria-describedby": "username-help", onChange: this.handleChange, placeholder: "Username", value: this.state.username }),
+                    usernameIcon,
+                    React.createElement("span", { id: "username-help", className: "help-block" }, "Please choose a username that is at least 4 characters long")),
+                React.createElement("div", __assign({ className: "form-group" }, emailFieldAttrs),
                     React.createElement("label", { htmlFor: "email" }, "Email address"),
-                    React.createElement("input", { type: "email", className: "form-control", id: "email", name: "email", onChange: this.handleChange, placeholder: "Email", value: this.state.email })),
-                React.createElement("div", { className: "form-group" },
+                    React.createElement("input", { type: "email", className: "form-control", id: "email", name: "email", "aria-describedby": "email-help", onChange: this.handleChange, placeholder: "Email", value: this.state.email }),
+                    emailIcon,
+                    React.createElement("span", { id: "email-help", className: "help-block" }, "Please enter your email address.")),
+                React.createElement("div", __assign({ className: "form-group" }, passwordFieldAttrs),
                     React.createElement("label", { htmlFor: "password" }, "Password"),
-                    React.createElement("input", { type: "password", className: "form-control", id: "password", name: "password", onChange: this.handleChange, placeholder: "Password", value: this.state.password })),
-                React.createElement("div", { className: "form-group" },
+                    React.createElement("input", { type: "password", className: "form-control", id: "password", name: "password", "aria-describedby": "password-help", onChange: this.handleChange, placeholder: "Password", value: this.state.password }),
+                    passwordIcon,
+                    React.createElement("span", { id: "password-help", className: "help-block" }, "Please choose a password that is at least 8 characters long")),
+                React.createElement("div", __assign({ className: "form-group" }, verifypwFieldAttrs),
                     React.createElement("label", { htmlFor: "verify_password" }, "Verify Password"),
-                    React.createElement("input", { type: "password", className: "form-control", id: "passwordVerification", name: "passwordVerification", onChange: this.handleChange, placeholder: "Password", value: this.state.passwordVerification })),
+                    React.createElement("input", { type: "password", className: "form-control", id: "passwordVerification", name: "passwordVerification", "aria-describedby": "pwverify-help", onChange: this.handleChange, placeholder: "Password", value: this.state.passwordVerification }),
+                    verifypwIcon,
+                    React.createElement("span", { id: "pwverify-help", className: "help-block" }, "Please type your choosen password again.")),
                 React.createElement("button", { type: "submit", className: "btn btn-primary", onClick: this.handleRegister }, "Register"))));
     };
     return RegisterUserFormComponent;
