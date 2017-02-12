@@ -136,7 +136,7 @@ export class RegisterUserFormComponent extends React.Component<RegisterUserFormP
                         <label htmlFor="verify_password">Verify Password</label>
                         <input type="password" className="form-control" id="passwordVerification" name="passwordVerification" aria-describedby="pwverify-help" onChange={this.handleChange} placeholder="Password" value={this.state.passwordVerification} />
                         { verifypwIcon }
-                        <span id="pwverify-help" className="help-block">Please type your choosen password again.</span>
+                        <span id="pwverify-help" className="help-block">Please type your password again.</span>
                     </div>
                     <button type="submit" className="btn btn-primary" onClick={this.handleRegister}>Register</button>
                 </form>

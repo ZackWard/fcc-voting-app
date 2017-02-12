@@ -14072,7 +14072,7 @@ var RegisterUserFormComponent = (function (_super) {
                     React.createElement("label", { htmlFor: "verify_password" }, "Verify Password"),
                     React.createElement("input", { type: "password", className: "form-control", id: "passwordVerification", name: "passwordVerification", "aria-describedby": "pwverify-help", onChange: this.handleChange, placeholder: "Password", value: this.state.passwordVerification }),
                     verifypwIcon,
-                    React.createElement("span", { id: "pwverify-help", className: "help-block" }, "Please type your choosen password again.")),
+                    React.createElement("span", { id: "pwverify-help", className: "help-block" }, "Please type your password again.")),
                 React.createElement("button", { type: "submit", className: "btn btn-primary", onClick: this.handleRegister }, "Register"))));
     };
     return RegisterUserFormComponent;
