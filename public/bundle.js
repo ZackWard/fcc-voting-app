@@ -14622,10 +14622,7 @@ var VoteLink_1 = __webpack_require__(148);
 var AddResponseLink_1 = __webpack_require__(149);
 exports.PollResponses = function (props) {
     var responseElements = props.poll.responses.map(function (response, index) {
-        return (React.createElement(VoteLink_1.VoteLink, { key: index, pollId: props.poll.poll_id, responseId: index, clickHandler: props.voteHandler },
-            response.response,
-            " - Votes: ",
-            response.votes));
+        return (React.createElement(VoteLink_1.VoteLink, { key: index, pollId: props.poll.poll_id, responseId: index, clickHandler: props.voteHandler }, response.response));
     });
     return (React.createElement("div", { className: "poll-responses list-group" },
         responseElements,
