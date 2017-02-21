@@ -53,12 +53,20 @@ export const reducer = (state = initialState, action) => {
 
     switch (action.type) {
 
+        case actions.BEGIN_LOGIN: 
+            newState.loginError = null;
+            return newState;
+
         case actions.LOGIN_SUCCESS: 
             console.log(action.message);
             window.localStorage.setItem('fcc-vote-app-api-key', action.apiToken);
             window.localStorage.setItem('fcc-vote-app-user', action.user);
             newState.user = action.user;
             browserHistory.push('/polls');
+            return newState;
+
+        case actions.LOGIN_FAILURE: 
+            newState.loginError = action.message;
             return newState;
 
         case actions.LOGOUT:

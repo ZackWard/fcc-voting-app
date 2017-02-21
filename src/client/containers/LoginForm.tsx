@@ -3,7 +3,8 @@ import { connect } from "react-redux";
 import { beginLogin } from "../actions";
 
 interface LoginFormProps {
-    onSubmitLogin: (username: string, password: string) => {}
+    onSubmitLogin: (username: string, password: string) => {},
+    error?: string
 }
 
 interface LoginFormState {
@@ -48,6 +49,7 @@ export class LoginFormComponent extends React.Component<LoginFormProps, LoginFor
                         <label htmlFor="password">Password</label>
                         <input type="password" className="form-control" id="password" name="password" onChange={this.handleChange} value={this.state.password} placeholder="Password" />
                     </div>
+                    { this.props.error && <div className="alert alert-danger" role="alert">{this.props.error}</div> }
                     <button type="submit" className="btn btn-primary" onClick={this.handleSubmit}>Log In</button>
                 </div>
             </form>
@@ -55,10 +57,16 @@ export class LoginFormComponent extends React.Component<LoginFormProps, LoginFor
     }
 }
 
+const mapStateToProps = state => {
+    return {
+        error: state.loginError
+    };
+};
+
 const mapDispatchToProps = (dispatch) => {
     return {
         onSubmitLogin: (username: string, password: string) => { dispatch(beginLogin(username, password)); }
     };
 };
 
-export const LoginForm = connect(null, mapDispatchToProps)(LoginFormComponent);
+export const LoginForm = connect(mapStateToProps, mapDispatchToProps)(LoginFormComponent);

@@ -150,5 +150,9 @@ router.post('/login', function (req, res) {
                 res.status(500).json({error: "Invalid credentials"});
             }
         })
-        .catch(e => {res.end("Error: " + e)});
+        .catch(e => {res.status(401).json({
+            error: {
+                description: "Invalid username or password"
+            }
+        })});
 });

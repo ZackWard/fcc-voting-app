@@ -27,4 +27,5 @@ export interface appState {
     pollForm: pollFormState,
     retrievedPolls: Poll[],
     registerUserError?: string;
+    loginError?: string
 }

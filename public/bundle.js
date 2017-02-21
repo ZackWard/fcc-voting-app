@@ -1708,6 +1708,7 @@ function beginLogin(username, password) {
             password: password
         })
             .then(function (json) {
+            console.log(json);
             dispatch({
                 type: exports.LOGIN_SUCCESS,
                 message: "Logged in!",
@@ -1717,9 +1718,10 @@ function beginLogin(username, password) {
             dispatch(retrievePolls());
         })
             .catch(function (json) {
+            console.log(json);
             dispatch({
                 type: exports.LOGIN_FAILURE,
-                message: json.error
+                message: json.error.description
             });
         });
     };
@@ -13714,17 +13716,23 @@ var LoginFormComponent = (function (_super) {
                 React.createElement("div", { className: "form-group" },
                     React.createElement("label", { htmlFor: "password" }, "Password"),
                     React.createElement("input", { type: "password", className: "form-control", id: "password", name: "password", onChange: this.handleChange, value: this.state.password, placeholder: "Password" })),
+                this.props.error && React.createElement("div", { className: "alert alert-danger", role: "alert" }, this.props.error),
                 React.createElement("button", { type: "submit", className: "btn btn-primary", onClick: this.handleSubmit }, "Log In"))));
     };
     return LoginFormComponent;
 }(React.Component));
 exports.LoginFormComponent = LoginFormComponent;
+var mapStateToProps = function (state) {
+    return {
+        error: state.loginError
+    };
+};
 var mapDispatchToProps = function (dispatch) {
     return {
         onSubmitLogin: function (username, password) { dispatch(actions_1.beginLogin(username, password)); }
     };
 };
-exports.LoginForm = react_redux_1.connect(null, mapDispatchToProps)(LoginFormComponent);
+exports.LoginForm = react_redux_1.connect(mapStateToProps, mapDispatchToProps)(LoginFormComponent);
 
 
 /***/ }),
@@ -14183,12 +14191,18 @@ exports.reducer = function (state, action) {
     // Make a copy of state
     var newState = JSON.parse(JSON.stringify(state));
     switch (action.type) {
+        case actions.BEGIN_LOGIN:
+            newState.loginError = null;
+            return newState;
         case actions.LOGIN_SUCCESS:
             console.log(action.message);
             window.localStorage.setItem('fcc-vote-app-api-key', action.apiToken);
             window.localStorage.setItem('fcc-vote-app-user', action.user);
             newState.user = action.user;
             react_router_1.browserHistory.push('/polls');
+            return newState;
+        case actions.LOGIN_FAILURE:
+            newState.loginError = action.message;
             return newState;
         case actions.LOGOUT:
             console.log(action.message);

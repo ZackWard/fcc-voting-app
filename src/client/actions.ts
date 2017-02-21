@@ -148,6 +148,7 @@ export function beginLogin(username: string, password: string) {
             password: password
         })
         .then((json: any) => {
+            console.log(json);
             dispatch({
                 type: LOGIN_SUCCESS,
                 message: "Logged in!",
@@ -157,9 +158,10 @@ export function beginLogin(username: string, password: string) {
             dispatch(retrievePolls());
         })
         .catch((json) => {
+            console.log(json);
             dispatch({
                 type: LOGIN_FAILURE,
-                message: json.error
+                message: json.error.description
             });
         });      
     };
